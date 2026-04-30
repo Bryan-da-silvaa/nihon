@@ -1,0 +1,48 @@
+# Dépendances (Le trou noir à tokens)
+node_modules/
+
+# Build et Cache Next.js (Fichiers générés illisibles pour l'IA)
+.next/
+out/
+build/
+dist/
+
+# Git et Metadata
+.git/
+.svn/
+.hg/
+.DS_Store
+
+# Fichiers de verrouillage (Trop longs, aucun intérêt logique)
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+bun.lockb
+
+# Variables d'environnement (Sécurité : on ne veut pas qu'il les lise par erreur)
+.env
+.env.*
+!.env.example
+
+# Médias et Assets (On ne veut pas qu'il tente de "lire" une image)
+public/assets/
+public/images/
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.svg
+*.ico
+*.pdf
+*.mp4
+
+# Logs et rapports
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.eslintcache
+.stylelintcache
+
+# Types générés (Optionnel : garde-les si tu veux qu'il comprenne tes types Prisma/Zod)
+# .prisma/

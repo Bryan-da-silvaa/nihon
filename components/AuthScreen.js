@@ -1,6 +1,8 @@
 import { useState } from "react";
+import { useLanguage } from "../context/LanguageContext";
 
 export default function AuthScreen({ onLogin }) {
+  const { t } = useLanguage();
   const [isLogin, setIsLogin] = useState(true);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -12,7 +14,7 @@ export default function AuthScreen({ onLogin }) {
     const file = e.target.files[0];
     if (file) {
       if (file.size > 2 * 1024 * 1024) {
-        setErrorMsg("L'image est trop volumineuse (max 2 Mo)");
+        setErrorMsg(t('auth.errorImageSize'));
         return;
       }
       const reader = new FileReader();
@@ -41,11 +43,11 @@ export default function AuthScreen({ onLogin }) {
       if (res.ok) {
         onLogin(data.user);
       } else {
-        setErrorMsg(data.error || "Une erreur est survenue");
+        setErrorMsg(data.error ? t(data.error) : t('auth.errorGeneric'));
       }
     } catch (err) {
       console.error(err);
-      setErrorMsg("Erreur réseau");
+      setErrorMsg(t('auth.errorNetwork'));
     } finally {
       setLoading(false);
     }
@@ -54,17 +56,17 @@ export default function AuthScreen({ onLogin }) {
   return (
     <div className="flex flex-col items-center max-w-md mx-auto py-10">
       <h2 className="text-3xl font-bold mb-6 text-blue-600 dark:text-blue-400">
-        Bienvenue sur Nihon
+        {t('auth.welcome')}
       </h2>
       
       <div className="bg-gray-50 dark:bg-gray-700 w-full p-8 rounded-xl shadow-inner mb-6">
         <h3 className="text-xl font-bold mb-6 text-center">
-          {isLogin ? "Connexion" : "Inscription"}
+          {isLogin ? t('auth.login') : t('auth.register')}
         </h3>
         
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div>
-            <label className="block text-sm font-medium mb-1 text-left">Pseudo</label>
+            <label className="block text-sm font-medium mb-1 text-left">{t('auth.username')}</label>
             <input
               type="text"
               value={username}
@@ -75,7 +77,7 @@ export default function AuthScreen({ onLogin }) {
           </div>
           
           <div>
-            <label className="block text-sm font-medium mb-1 text-left">Mot de passe</label>
+            <label className="block text-sm font-medium mb-1 text-left">{t('auth.password')}</label>
             <input
               type="password"
               value={password}
@@ -87,10 +89,10 @@ export default function AuthScreen({ onLogin }) {
 
           {!isLogin && (
             <div>
-              <label className="block text-sm font-medium mb-1 text-left">Avatar (Jusqu'à 2 Mo)</label>
+              <label className="block text-sm font-medium mb-1 text-left">{t('auth.avatarLabel')}</label>
               <div className="flex items-center gap-4">
                 {avatar && (
-                  <img src={avatar} alt="Aperçu" className="w-12 h-12 rounded-full object-cover border border-gray-300" />
+                  <img src={avatar} alt={t('auth.avatarPreview')} className="w-12 h-12 rounded-full object-cover border border-gray-300" />
                 )}
                 <input
                   type="file"
@@ -114,13 +116,13 @@ export default function AuthScreen({ onLogin }) {
             disabled={loading}
             className="mt-4 w-full py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-bold transition disabled:opacity-50"
           >
-            {loading ? "Chargement..." : isLogin ? "Se connecter" : "S'inscrire"}
+            {loading ? t('auth.loading') : isLogin ? t('auth.submitLogin') : t('auth.submitRegister')}
           </button>
         </form>
 
         <div className="mt-6 text-center">
           <p className="text-sm text-gray-600 dark:text-gray-300">
-            {isLogin ? "Pas encore de compte ?" : "Déjà un compte ?"}
+            {isLogin ? t('auth.noAccount') : t('auth.alreadyHasAccount')}
           </p>
           <button
             onClick={() => {
@@ -129,10 +131,11 @@ export default function AuthScreen({ onLogin }) {
             }}
             className="text-blue-500 hover:underline text-sm font-bold mt-1"
           >
-            {isLogin ? "Créer un compte" : "Se connecter"}
+            {isLogin ? t('auth.createAccount') : t('auth.login')}
           </button>
         </div>
       </div>
     </div>
   );
 }
+

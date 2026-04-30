@@ -1,3 +1,6 @@
+import { useLanguage } from "../context/LanguageContext";
+import Ruby from "./Ruby";
+
 export default function GameScreen({
   goHome,
   useTimer,
@@ -9,11 +12,13 @@ export default function GameScreen({
   checkAnswer,
   inputsRef
 }) {
+  const { t, tNode, language } = useLanguage();
+
   return (
     <div>
       <div className="flex justify-between items-center sticky top-0 bg-white dark:bg-gray-800 z-50 py-3 border-b-2 border-gray-200 dark:border-gray-700 mb-4 transition-colors duration-300">
-        <button onClick={goHome} className="bg-gray-500 dark:bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-opacity-90 cursor-pointer">Retour à l'accueil</button>
-        {useTimer && <div className="text-2xl font-bold text-red-500 dark:text-red-400">Temps restant : {timeLeft}s</div>}
+        <button onClick={goHome} className="bg-gray-500 dark:bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-opacity-90 cursor-pointer">{tNode('game.backToHome')}</button>
+        {useTimer && <div className="text-2xl font-bold text-red-500 dark:text-red-400">{tNode('game.timeLeft')} {timeLeft}{language === 'fr' ? 's' : ''}</div>}
       </div>
       
       <div className="flex flex-wrap justify-center gap-4 mt-8">
@@ -28,7 +33,13 @@ export default function GameScreen({
 
           return (
             <div key={index} className="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-lg p-4 flex flex-col items-center gap-2 w-[120px] transition-colors duration-300">
-              <div className="text-5xl font-bold">{item.kana}</div>
+              <div className="text-5xl font-bold">
+                {item.kanji && item.reading ? (
+                  <Ruby base={item.kanji} reading={item.reading} />
+                ) : (
+                  item.kana
+                )}
+              </div>
               <input
                 ref={(el) => (inputsRef.current[index] = el)}
                 type="text"

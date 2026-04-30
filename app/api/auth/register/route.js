@@ -7,12 +7,12 @@ export async function POST(request) {
     const { username, password, avatar } = await request.json();
 
     if (!username || !password) {
-      return NextResponse.json({ error: "Veuillez remplir tous les champs obligatoires" }, { status: 400 });
+      return NextResponse.json({ error: "api.requiredFields" }, { status: 400 });
     }
 
     const existingUsers = await query('SELECT * FROM users WHERE username = ?', [username]);
     if (existingUsers.length > 0) {
-      return NextResponse.json({ error: "Ce nom d'utilisateur est déjà pris" }, { status: 400 });
+      return NextResponse.json({ error: "api.usernameTaken" }, { status: 400 });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -25,6 +25,6 @@ export async function POST(request) {
     return NextResponse.json({ success: true, user: newUser[0] });
   } catch (error) {
     console.error(error);
-    return NextResponse.json({ error: "Erreur serveur lors de l'inscription" }, { status: 500 });
+    return NextResponse.json({ error: "api.serverRegister" }, { status: 500 });
   }
 }

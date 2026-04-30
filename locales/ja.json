@@ -1,0 +1,88 @@
+{
+	"common": {
+		"loading": "読み込み中..."
+	},
+	"home": {
+		"title": "仮名の学習",
+		"subtitle": "復習したいものを選んでください：",
+		"hiragana": "ひらがな",
+		"katakana": "カタカナ",
+		"both": "両方",
+		"kanaCountLabel": "仮名の数 :",
+		"timerLabel": "タイマー :",
+		"seconds": "秒"
+	},
+	"game": {
+		"backToHome": "ホームに戻る",
+		"timeLeft": "残り時間 :",
+		"placeholder": "?"
+	},
+	"navbar": {
+		"brand": "Nihon",
+		"userMenuTitle": "ユーザーメニュー",
+		"profileAlt": "プロフィール",
+		"myProfile": "マイプロフィール",
+		"logout": "ログアウト",
+		"themeChangeTitle": "テーマを変更",
+		"langSwitchJa": "日本語",
+		"langSwitchFr": "フランス語"
+	},
+	"auth": {
+		"welcome": "Nihonへようこそ",
+		"login": "ログイン",
+		"register": "新規登録",
+		"username": "ユーザー名",
+		"password": "パスワード",
+		"avatarLabel": "アバター (最大 2 MB)",
+		"avatarPreview": "プレビュー",
+		"loading": "読み込み中...",
+		"submitLogin": "ログイン",
+		"submitRegister": "登録する",
+		"noAccount": "アカウントをお持ちでないですか？",
+		"alreadyHasAccount": "すでにアカウントをお持ちですか？",
+		"createAccount": "アカウントを作成",
+		"errorImageSize": "画像が大きすぎます (最大 2 MB)",
+		"errorGeneric": "エラーが発生しました",
+		"errorNetwork": "ネットワークエラー"
+	},
+	"profile": {
+		"title": "マイプロフィール",
+		"loading": "プロフィールを読み込み中...",
+		"errorLoading": "読み込みエラー",
+		"backToHome": "ホームに戻る",
+		"changeAvatarTitle": "アバターを変更",
+		"changeButton": "変更",
+		"avatarAlt": "アバター",
+		"save": "保存",
+		"edit": "編集",
+		"statsTitle": "総合統計",
+		"gamesPlayed": "プレイした回数",
+		"correctAnswers": "正解数",
+		"bestHiragana": "ひらがな最高スコア",
+		"bestKatakana": "カタカナ最高スコア",
+		"errorSave": "保存中にエラーが発生しました",
+		"errorImageSize": "画像が大きすぎます (最大 2 MB)"
+	},
+	"score": {
+		"title": "セッション結果",
+		"resultText": "{score} / {currentListLength} 点獲得しました！",
+		"backToHome": "ホームに戻る"
+	},
+	"errors": {
+		"kanaLimit": "エラー：最大500個までです。",
+		"dbSaveError": "データベースへの保存エラー"
+	},
+	"api": {
+		"requiredFields": "必須項目を入力してください",
+		"usernameTaken": "このユーザー名はすでに使われています",
+		"serverRegister": "登録中にサーバーエラーが発生しました",
+		"enterCredentials": "認証情報を入力してください",
+		"userNotFound": "ユーザーが見つかりません",
+		"invalidPassword": "パスワードが正しくありません",
+		"serverLogin": "ログイン中にサーバーエラーが発生しました",
+		"unauthorized": "未認証です",
+		"dbConnection": "データベース接続エラー",
+		"updateError": "更新中にエラーが発生しました",
+		"scoreSaveError": "スコア保存エラー"
+	}
+}

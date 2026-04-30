@@ -7,10 +7,11 @@ import useGameCompletion from "./useGameCompletion";
 export default function useKanaEngine() {
   const [currentUser, setCurrentUser] = useState(null);
   const [isAuthLoaded, setIsAuthLoaded] = useState(false);
-  
+
   useEffect(() => {
     const savedUser = localStorage.getItem("nihon_user");
     if (savedUser) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setCurrentUser(JSON.parse(savedUser));
     }
     setIsAuthLoaded(true);
@@ -54,17 +55,16 @@ export default function useKanaEngine() {
   };
 
   const finishGame = () => {
-    if (timerRef.current) clearInterval(timerRef.current);
     saveScoreToDb(score);
     setScreen("score");
   };
 
-  const timerRef = useGameTimer(screen, useTimer, timeLeft, setTimeLeft, finishGame);
+  useGameTimer(screen, useTimer, timeLeft, setTimeLeft, finishGame);
   useGameCompletion(screen, currentList, status, finishGame);
 
   const startGame = (selectedMode) => {
     if (kanaCount > 500) {
-      setErrorMsg("Erreur : La limite est de 500 Kana maximum.");
+      setErrorMsg("errors.kanaLimit");
       return;
     }
     setErrorMsg("");
@@ -111,17 +111,14 @@ export default function useKanaEngine() {
   };
 
   const goHome = () => {
-    if (timerRef.current) clearInterval(timerRef.current);
     setScreen("home");
   };
 
   const goProfile = () => {
-    if (timerRef.current) clearInterval(timerRef.current);
     setScreen("profile");
   };
 
   const logout = () => {
-    if (timerRef.current) clearInterval(timerRef.current);
     handleSetCurrentUser(null);
     setScreen("home");
   };
@@ -139,3 +136,4 @@ export default function useKanaEngine() {
     startGame, checkAnswer, goHome, goProfile, maxWidthClass
   };
 }
+

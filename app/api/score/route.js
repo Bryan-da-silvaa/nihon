@@ -5,7 +5,7 @@ export async function POST(request) {
   try {
     const { userId, mode, score, total } = await request.json();
     
-    if (!userId) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+    if (!userId) return NextResponse.json({ error: "api.unauthorized" }, { status: 401 });
 
     const queryStr = `
       UPDATE users 
@@ -27,6 +27,6 @@ export async function POST(request) {
     
     return NextResponse.json({ success: true });
   } catch (error) {
-    return NextResponse.json({ error: "Erreur d'enregistrement des scores" }, { status: 500 });
+    return NextResponse.json({ error: "api.scoreSaveError" }, { status: 500 });
   }
 }

@@ -7,8 +7,10 @@ import ScoreScreen from "../components/ScoreScreen";
 import ProfileScreen from "../components/ProfileScreen";
 import AuthScreen from "../components/AuthScreen";
 import useKanaEngine from "../hooks/useKanaEngine";
+import { useLanguage } from "../context/LanguageContext";
 
 export default function Home() {
+  const { t } = useLanguage();
   const {
     currentUser, setCurrentUser, isAuthLoaded, logout,
     screen, kanaCount, setKanaCount, useTimer, setUseTimer, 
@@ -29,7 +31,7 @@ export default function Home() {
 
       <div className={`bg-white dark:bg-gray-800 p-8 rounded-xl shadow-md w-[98%] text-center ${maxWidthClass} mx-auto transition-all duration-300`}>
         {!isAuthLoaded ? (
-           <div className="text-xl py-10">Chargement...</div>
+           <div className="text-xl py-10">{t("common.loading")}</div>
         ) : !currentUser ? (
           <AuthScreen onLogin={setCurrentUser} />
         ) : (

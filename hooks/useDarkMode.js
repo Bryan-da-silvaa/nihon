@@ -5,6 +5,7 @@ export default function useDarkMode() {
 
   useEffect(() => {
     if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsDarkMode(true);
     }
   }, []);

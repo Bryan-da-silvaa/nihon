@@ -1,0 +1,88 @@
+{
+	"common": {
+		"loading": "Chargement..."
+	},
+	"home": {
+		"title": "Apprentissage des Kana",
+		"subtitle": "Choisissez ce que vous voulez reviser :",
+		"hiragana": "Hiragana",
+		"katakana": "Katakana",
+		"both": "Les Deux",
+		"kanaCountLabel": "Nombre de Kana :",
+		"timerLabel": "Chronometre :",
+		"seconds": "secondes"
+	},
+	"game": {
+		"backToHome": "Retour a l'accueil",
+		"timeLeft": "Temps restant :",
+		"placeholder": "?"
+	},
+	"navbar": {
+		"brand": "Nihon",
+		"userMenuTitle": "Menu utilisateur",
+		"profileAlt": "Profil",
+		"myProfile": "Mon Profil",
+		"logout": "Deconnexion",
+		"themeChangeTitle": "Changer de theme",
+		"langSwitchJa": "Japonais (日本語)",
+		"langSwitchFr": "Francais"
+	},
+	"auth": {
+		"welcome": "Bienvenue sur Nihon",
+		"login": "Connexion",
+		"register": "Inscription",
+		"username": "Pseudo",
+		"password": "Mot de passe",
+		"avatarLabel": "Avatar (Jusqu'a 2 Mo)",
+		"avatarPreview": "Apercu",
+		"loading": "Chargement...",
+		"submitLogin": "Se connecter",
+		"submitRegister": "S'inscrire",
+		"noAccount": "Pas encore de compte ?",
+		"alreadyHasAccount": "Deja un compte ?",
+		"createAccount": "Creer un compte",
+		"errorImageSize": "L'image est trop volumineuse (max 2 Mo)",
+		"errorGeneric": "Une erreur est survenue",
+		"errorNetwork": "Erreur reseau"
+	},
+	"profile": {
+		"title": "Mon Profil",
+		"loading": "Chargement du profil...",
+		"errorLoading": "Erreur de chargement",
+		"backToHome": "Retour a l'accueil",
+		"changeAvatarTitle": "Changer d'avatar",
+		"changeButton": "Changer",
+		"avatarAlt": "Avatar",
+		"save": "Enregistrer",
+		"edit": "Modifier",
+		"statsTitle": "Statistiques globales",
+		"gamesPlayed": "Parties jouees",
+		"correctAnswers": "Bonnes reponses",
+		"bestHiragana": "Record Hiragana",
+		"bestKatakana": "Record Katakana",
+		"errorSave": "Erreur lors de la sauvegarde",
+		"errorImageSize": "L'image est trop volumineuse (max 2 Mo)"
+	},
+	"score": {
+		"title": "Resultat de la session",
+		"resultText": "Vous avez obtenu {score} sur {currentListLength} !",
+		"backToHome": "Retour a l'accueil"
+	},
+	"errors": {
+		"kanaLimit": "Erreur : La limite est de 500 Kana maximum.",
+		"dbSaveError": "Erreur de sauvegarde en DB"
+	},
+	"api": {
+		"requiredFields": "Veuillez remplir tous les champs obligatoires",
+		"usernameTaken": "Ce nom d'utilisateur est deja pris",
+		"serverRegister": "Erreur serveur lors de l'inscription",
+		"enterCredentials": "Veuillez entrer vos identifiants",
+		"userNotFound": "Utilisateur introuvable",
+		"invalidPassword": "Mot de passe incorrect",
+		"serverLogin": "Erreur serveur lors de la connexion",
+		"unauthorized": "Non autorise",
+		"dbConnection": "Erreur de connexion a la base de donnees",
+		"updateError": "Erreur lors de la mise a jour",
+		"scoreSaveError": "Erreur d'enregistrement des scores"
+	}
+}
