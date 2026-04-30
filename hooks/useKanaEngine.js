@@ -1,10 +1,30 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import Hiragana from "../data/Hiragana.json";
 import Katakana from "../data/Katakana.json";
 import useGameTimer from "./useGameTimer";
 import useGameCompletion from "./useGameCompletion";
 
 export default function useKanaEngine() {
+  const [currentUser, setCurrentUser] = useState(null);
+  const [isAuthLoaded, setIsAuthLoaded] = useState(false);
+  
+  useEffect(() => {
+    const savedUser = localStorage.getItem("nihon_user");
+    if (savedUser) {
+      setCurrentUser(JSON.parse(savedUser));
+    }
+    setIsAuthLoaded(true);
+  }, []);
+
+  const handleSetCurrentUser = (user) => {
+    setCurrentUser(user);
+    if (user) {
+      localStorage.setItem("nihon_user", JSON.stringify(user));
+    } else {
+      localStorage.removeItem("nihon_user");
+    }
+  };
+
   const [screen, setScreen] = useState("home");
   const [mode, setMode] = useState("hiragana");
   const [kanaCount, setKanaCount] = useState(10);
@@ -20,8 +40,22 @@ export default function useKanaEngine() {
 
   const inputsRef = useRef([]);
 
+  const saveScoreToDb = async (finalScore) => {
+    if (!currentUser) return;
+    try {
+      await fetch("/api/score", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: currentUser.id, mode, score: finalScore, total: currentList.length }),
+      });
+    } catch (err) {
+      console.error("Erreur de sauvegarde en DB", err);
+    }
+  };
+
   const finishGame = () => {
     if (timerRef.current) clearInterval(timerRef.current);
+    saveScoreToDb(score);
     setScreen("score");
   };
 
@@ -81,15 +115,27 @@ export default function useKanaEngine() {
     setScreen("home");
   };
 
+  const goProfile = () => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    setScreen("profile");
+  };
+
+  const logout = () => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    handleSetCurrentUser(null);
+    setScreen("home");
+  };
+
   let maxWidthClass = "max-w-[600px]";
   if (currentList.length > 40) maxWidthClass = "max-w-[1800px]";
   else if (currentList.length > 20) maxWidthClass = "max-w-[1200px]";
   else if (currentList.length > 10) maxWidthClass = "max-w-[900px]";
 
   return {
+    currentUser, setCurrentUser: handleSetCurrentUser, isAuthLoaded, logout,
     screen, kanaCount, setKanaCount, useTimer, setUseTimer, 
     timeLimit, setTimeLimit, timeLeft, errorMsg, 
     currentList, score, answers, setAnswers, status, inputsRef,
-    startGame, checkAnswer, goHome, maxWidthClass
+    startGame, checkAnswer, goHome, goProfile, maxWidthClass
   };
 }
