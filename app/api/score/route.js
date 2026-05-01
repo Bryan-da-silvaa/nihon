@@ -37,22 +37,76 @@ export async function POST(request) {
 
     // 3. Update individual kana_stats
     if (kana_details && Array.isArray(kana_details) && kana_details.length > 0) {
-      // Build a bulk insert/update query
-      const values = [];
-      const placeholders = [];
-      kana_details.forEach(item => {
-        placeholders.push(`(?, ?, 1, ?)`);
-        values.push(userId, item.kana, item.correct ? 1 : 0);
-      });
-      
-      const bulkQuery = `
-        INSERT INTO kana_stats (user_id, kana, attempts, correct)
-        VALUES ${placeholders.join(', ')}
-        ON DUPLICATE KEY UPDATE 
-          attempts = attempts + 1,
-          correct = correct + VALUES(correct)
-      `;
-      await query(bulkQuery, values);
+      const statsRows = await query(
+        `SELECT kana, attempts, correct, srs_interval, srs_repetition, srs_ease_factor, srs_lapses, srs_streak
+         FROM kana_stats
+         WHERE user_id = ?`,
+        [userId]
+      );
+      const statsByKana = new Map(statsRows.map((row) => [row.kana, row]));
+
+      for (const item of kana_details) {
+        const existing = statsByKana.get(item.kana) || {};
+        let repetition = existing.srs_repetition || 0;
+        let intervalDays = existing.srs_interval || 0;
+        let easeFactor = existing.srs_ease_factor || 2.5;
+        let lapses = existing.srs_lapses || 0;
+        let streak = existing.srs_streak || 0;
+        const isCorrect = item.correct ? 1 : 0;
+        let nextQuality = isCorrect ? 5 : 2;
+
+        if (isCorrect) {
+          repetition += 1;
+          streak += 1;
+
+          if (repetition === 1) {
+            intervalDays = 0.01;
+          } else if (repetition === 2) {
+            intervalDays = 1;
+          } else if (repetition === 3) {
+            intervalDays = 3;
+          } else {
+            intervalDays = Math.max(1, intervalDays * easeFactor);
+          }
+
+          easeFactor = Math.min(3, easeFactor + 0.08);
+        } else {
+          repetition = 0;
+          streak = 0;
+          lapses += 1;
+          intervalDays = 0.01;
+          easeFactor = Math.max(1.3, easeFactor - 0.2);
+        }
+
+        const minutesToAdd = Math.max(1, Math.round(intervalDays * 24 * 60));
+
+        await query(`
+          INSERT INTO kana_stats (
+            user_id,
+            kana,
+            attempts,
+            correct,
+            srs_interval,
+            srs_repetition,
+            srs_ease_factor,
+            srs_next_review,
+            srs_streak,
+            srs_lapses,
+            srs_last_quality
+          )
+          VALUES (?, ?, 1, ?, ?, ?, ?, DATE_ADD(NOW(), INTERVAL ? MINUTE), ?, ?, ?)
+          ON DUPLICATE KEY UPDATE 
+            attempts = attempts + 1,
+            correct = correct + VALUES(correct),
+            srs_interval = VALUES(srs_interval),
+            srs_repetition = VALUES(srs_repetition),
+            srs_ease_factor = VALUES(srs_ease_factor),
+            srs_next_review = VALUES(srs_next_review),
+            srs_streak = VALUES(srs_streak),
+            srs_lapses = VALUES(srs_lapses),
+            srs_last_quality = VALUES(srs_last_quality)
+        `, [userId, item.kana, isCorrect, intervalDays, repetition, easeFactor, minutesToAdd, streak, lapses, nextQuality]);
+      }
     }
     
     return NextResponse.json({ success: true });

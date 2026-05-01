@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import Image from "next/image";
 import { useLanguage } from "../context/LanguageContext";
 
 export default function AdminScreen({ goHome, goWhisper, currentUser }) {
@@ -21,6 +22,12 @@ export default function AdminScreen({ goHome, goWhisper, currentUser }) {
   const [isGeneratingFurigana, setIsGeneratingFurigana] = useState(false);
   const [furiganaMessage, setFuriganaMessage] = useState({ text: "", type: "" });
   
+  // Users State
+  const [users, setUsers] = useState([]);
+  const [isLoadingUsers, setIsLoadingUsers] = useState(false);
+  const [deletingUserId, setDeletingUserId] = useState(null);
+  const [deleteMessage, setDeleteMessage] = useState({ text: "", type: "" });
+  
   // Media State
   const [sessions, setSessions] = useState([]);
   const [isLoadingSessions, setIsLoadingSessions] = useState(false);
@@ -28,28 +35,63 @@ export default function AdminScreen({ goHome, goWhisper, currentUser }) {
   const [mediaMessage, setMediaMessage] = useState({ text: "", type: "" });
   const fileInputRef = useRef(null);
 
+  const loadSettings = async () => {
+    setIsLoadingSettings(true);
+    try {
+      const res = await fetch('/api/settings');
+      const data = await res.json();
+      setSettings({
+        whisperCommand: data.whisperCommand || "whisper",
+        whisperPath: data.whisperPath || "",
+        whisperModel: data.whisperModel || "base",
+        ytdlpCommand: data.ytdlpCommand || "yt-dlp",
+        ffmpegCommand: data.ffmpegCommand || "ffmpeg"
+      });
+    } catch (err) {
+      console.error("Error loading settings:", err);
+    } finally {
+      setIsLoadingSettings(false);
+    }
+  };
+
+  const loadSessions = async () => {
+    setIsLoadingSessions(true);
+    try {
+      const res = await fetch('/api/whisper/sessions');
+      const data = await res.json();
+      setSessions(data.sessions || []);
+    } catch (err) {
+      console.error('Failed to load sessions:', err);
+    } finally {
+      setIsLoadingSessions(false);
+    }
+  };
+
+  const loadUsers = async () => {
+    setIsLoadingUsers(true);
+    try {
+      const res = await fetch('/api/admin/users');
+      const data = await res.json();
+      setUsers(data.users || []);
+    } catch (err) {
+      console.error('Failed to load users:', err);
+    } finally {
+      setIsLoadingUsers(false);
+    }
+  };
+
   useEffect(() => {
     if (activeTab === "settings") {
-      setIsLoadingSettings(true);
-      fetch('/api/settings')
-        .then(res => res.json())
-        .then(data => {
-          setSettings({
-            whisperCommand: data.whisperCommand || "whisper",
-            whisperPath: data.whisperPath || "",
-            whisperModel: data.whisperModel || "base",
-            ytdlpCommand: data.ytdlpCommand || "yt-dlp",
-            ffmpegCommand: data.ffmpegCommand || "ffmpeg"
-          });
-          setIsLoadingSettings(false);
-        })
-        .catch(err => {
-          console.error("Error loading settings:", err);
-          setIsLoadingSettings(false);
-        });
+      const timeoutId = setTimeout(() => loadSettings(), 0);
+      return () => clearTimeout(timeoutId);
     }
     if (activeTab === "media") {
-      loadSessions();
+      const timeoutId = setTimeout(() => loadSessions(), 0);
+      return () => clearTimeout(timeoutId);
+    }
+    if (activeTab === "users") {
+      const timeoutId = setTimeout(() => loadUsers(), 0);
+      return () => clearTimeout(timeoutId);
     }
   }, [activeTab]);
 
@@ -112,20 +154,6 @@ export default function AdminScreen({ goHome, goWhisper, currentUser }) {
       setIsImporting(false);
       e.target.value = null;
       setTimeout(() => setDbMessage({ text: "", type: "" }), 5000);
-    }
-  };
-
-  // Media functions
-  const loadSessions = async () => {
-    setIsLoadingSessions(true);
-    try {
-      const res = await fetch('/api/whisper/sessions');
-      const data = await res.json();
-      setSessions(data.sessions || []);
-    } catch (err) {
-      console.error('Failed to load sessions:', err);
-    } finally {
-      setIsLoadingSessions(false);
     }
   };
 
@@ -204,6 +232,33 @@ export default function AdminScreen({ goHome, goWhisper, currentUser }) {
     }
   };
 
+  const handleDeleteUser = async (userId, username) => {
+    if (!confirm(t("admin.users.deleteConfirm").replace("{username}", username))) return;
+    
+    setDeletingUserId(userId);
+    setDeleteMessage({ text: "", type: "" });
+    
+    try {
+      const res = await fetch(`/api/admin/users/${userId}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      const data = await res.json();
+      
+      if (res.ok) {
+        setDeleteMessage({ text: t("admin.users.deleteSuccess").replace("{username}", username), type: "success" });
+        await loadUsers();
+      } else {
+        setDeleteMessage({ text: data.error || t("admin.users.deleteError"), type: "error" });
+      }
+    } catch (err) {
+      setDeleteMessage({ text: t("admin.users.deleteError"), type: "error" });
+    } finally {
+      setDeletingUserId(null);
+      setTimeout(() => setDeleteMessage({ text: "", type: "" }), 5000);
+    }
+  };
+
   // Recover furigana success message after hot-reload
   useEffect(() => {
     const saved = localStorage.getItem("furigana_msg");
@@ -212,11 +267,15 @@ export default function AdminScreen({ goHome, goWhisper, currentUser }) {
         const parsed = JSON.parse(saved);
         // Only show if less than 10 seconds old
         if (Date.now() - parsed.ts < 10000) {
-          setFuriganaMessage({ text: parsed.text, type: parsed.type });
-          setTimeout(() => {
-            setFuriganaMessage({ text: "", type: "" });
-            localStorage.removeItem("furigana_msg");
-          }, 5000);
+          const timeoutId = setTimeout(() => {
+            setFuriganaMessage({ text: parsed.text, type: parsed.type });
+            setTimeout(() => {
+              setFuriganaMessage({ text: "", type: "" });
+              localStorage.removeItem("furigana_msg");
+            }, 5000);
+          }, 0);
+
+          return () => clearTimeout(timeoutId);
         } else {
           localStorage.removeItem("furigana_msg");
         }
@@ -332,10 +391,75 @@ export default function AdminScreen({ goHome, goWhisper, currentUser }) {
         )}
 
         {activeTab === "users" && (
-          <div className="w-full bg-white/50 dark:bg-gray-800/50 backdrop-blur-md border border-gray-200 dark:border-gray-700 rounded-3xl p-8 flex flex-col items-center justify-center text-center shadow-sm min-h-[300px]">
-             <div className="text-6xl mb-4 opacity-50">👥</div>
-             <h3 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">{t("admin.tools.usersTitle")}</h3>
-             <p className="text-gray-500 dark:text-gray-400 max-w-md">{t("admin.tools.usersDesc")}</p>
+          <div className="w-full bg-white/50 dark:bg-gray-800/50 backdrop-blur-md border border-gray-200 dark:border-gray-700 rounded-3xl p-8 flex flex-col shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="flex items-center gap-4 mb-8 border-b border-gray-200 dark:border-gray-700 pb-6">
+              <div className="text-4xl">👥</div>
+              <div>
+                <h3 className="text-2xl font-bold text-gray-800 dark:text-white">{t("admin.users.title")}</h3>
+                <p className="text-gray-500 dark:text-gray-400">{t("admin.users.subtitle")}</p>
+              </div>
+            </div>
+
+            {deleteMessage.text && (
+              <div className={`mb-6 p-4 rounded-xl font-medium text-sm ${
+                deleteMessage.type === 'success' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400' :
+                'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+              }`}>
+                {deleteMessage.text}
+              </div>
+            )}
+
+            {isLoadingUsers ? (
+              <div className="flex justify-center py-12">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div>
+              </div>
+            ) : users.length === 0 ? (
+              <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+                <div className="text-5xl mb-4 opacity-50">📭</div>
+                <p className="font-semibold">{t("admin.users.empty")}</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {users.map(user => (
+                  <div key={user.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-5 bg-gray-50/80 dark:bg-gray-900/50 border border-gray-100 dark:border-gray-700 rounded-2xl hover:shadow-md transition-shadow">
+                    <div className="flex items-center gap-4 flex-1 min-w-0">
+                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white font-bold text-lg flex-shrink-0 shadow-md">
+                        {user.avatar ? (
+                          <Image
+                            src={user.avatar}
+                            alt={user.username}
+                            width={48}
+                            height={48}
+                            unoptimized
+                            className="w-full h-full rounded-full object-cover"
+                          />
+                        ) : (
+                          user.username?.charAt(0).toUpperCase() || "?"
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <h4 className="font-bold text-gray-800 dark:text-white truncate">{user.username}</h4>
+                        <div className="flex items-center gap-3 mt-1 text-xs text-gray-500 dark:text-gray-400">
+                          <span>🆔 ID: {user.id}</span>
+                          <span>🎮 {user.total_games} {t("admin.users.games")}</span>
+                          <span>🎯 {user.total_attempts > 0 ? Math.round((user.total_score / user.total_attempts) * 100) : 0}%</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteUser(user.id, user.username)}
+                        disabled={deletingUserId === user.id}
+                        className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl text-sm transition-colors flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <span>🗑️</span> {t("admin.users.deleteBtn")}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 

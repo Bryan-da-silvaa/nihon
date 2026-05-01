@@ -2,6 +2,7 @@
 
 import Navbar from "../components/Navbar";
 import HomeScreen from "../components/HomeScreen";
+import LearningSetupScreen from "../components/LearningSetupScreen";
 import GameScreen from "../components/GameScreen";
 import ScoreScreen from "../components/ScoreScreen";
 import ProfileScreen from "../components/ProfileScreen";
@@ -19,8 +20,9 @@ export default function Home() {
     currentUser, setCurrentUser, isAuthLoaded, logout,
     screen, kanaCount, setKanaCount, useTimer, setUseTimer, 
     timeLimit, setTimeLimit, timeLeft, errorMsg, 
+    setupMode, availableKana, selectedKana, toggleKana, toggleKanaLine, selectAllKana, clearKanaSelection,
     currentList, score, answers, setAnswers, status, inputsRef,
-    startGame, checkAnswer, goHome, goProfile, goAdmin, goWhisper, goLibrary, goPlayer,
+    startGame, openSetup, checkAnswer, markIncorrect, goHome, goProfile, goAdmin, goWhisper, goLibrary, goPlayer,
     selectedSessionId, maxWidthClass
   } = useKanaEngine();
 
@@ -45,16 +47,28 @@ export default function Home() {
           <>
             {screen === "home" && (
               <HomeScreen
+                openSetup={openSetup}
+              />
+            )}
+
+            {screen === "session_setup" && (
+              <LearningSetupScreen
+                mode={setupMode}
+                availableKana={availableKana}
+                selectedKana={selectedKana}
+                toggleKana={toggleKana}
+                toggleKanaLine={toggleKanaLine}
+                selectAllKana={selectAllKana}
+                clearKanaSelection={clearKanaSelection}
                 startGame={startGame}
-                kanaCount={kanaCount}
-            setKanaCount={setKanaCount}
-            errorMsg={errorMsg}
-            useTimer={useTimer}
-            setUseTimer={setUseTimer}
-            timeLimit={timeLimit}
-            setTimeLimit={setTimeLimit}
-          />
-        )}
+                goHome={goHome}
+                useTimer={useTimer}
+                setUseTimer={setUseTimer}
+                timeLimit={timeLimit}
+                setTimeLimit={setTimeLimit}
+                errorMsg={errorMsg}
+              />
+            )}
 
         {screen === "game" && (
           <GameScreen
@@ -66,6 +80,7 @@ export default function Home() {
             answers={answers}
             setAnswers={setAnswers}
             checkAnswer={checkAnswer}
+            markIncorrect={markIncorrect}
             inputsRef={inputsRef}
           />
         )}

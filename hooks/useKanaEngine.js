@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect } from "react";
-import Hiragana from "../data/Hiragana.json";
-import Katakana from "../data/Katakana.json";
 import useGameTimer from "./useGameTimer";
 import useGameCompletion from "./useGameCompletion";
+import { getKanaDeck, normalizeKanaMode, shuffleDeck } from "../lib/kana";
+
+const DEFAULT_LEARNING_STRATEGY = "balanced";
 
 export default function useKanaEngine() {
   const [currentUser, setCurrentUser] = useState(null);
@@ -28,6 +29,9 @@ export default function useKanaEngine() {
 
   const [screen, setScreen] = useState("home");
   const [mode, setMode] = useState("hiragana");
+  const [setupMode, setSetupMode] = useState("both");
+  const [availableKana, setAvailableKana] = useState([]);
+  const [selectedKana, setSelectedKana] = useState([]);
   const [selectedSessionId, setSelectedSessionId] = useState(null);
   const [kanaCount, setKanaCount] = useState(10);
   const [useTimer, setUseTimer] = useState(false);
@@ -73,6 +77,20 @@ export default function useKanaEngine() {
     }
   };
 
+  const buildFallbackSession = (selectedMode, requestedCount) => {
+    const baseDeck = shuffleDeck(getKanaDeck(normalizeKanaMode(selectedMode === "srs" ? "both" : selectedMode)));
+    if (baseDeck.length === 0) {
+      return [];
+    }
+
+    const session = [];
+    for (let index = 0; index < requestedCount; index += 1) {
+      session.push(baseDeck[index % baseDeck.length]);
+    }
+
+    return session;
+  };
+
   const finishGame = () => {
     saveScoreToDb(score);
     setScreen("score");
@@ -81,24 +99,45 @@ export default function useKanaEngine() {
   useGameTimer(screen, useTimer, timeLeft, setTimeLeft, finishGame);
   useGameCompletion(screen, currentList, status, finishGame);
 
-  const startGame = (selectedMode) => {
+  const startGame = async () => {
     if (kanaCount > 500) {
       setErrorMsg("errors.kanaLimit");
       return;
     }
+    if (selectedKana.length === 0) {
+      setErrorMsg("errors.selectAtLeastOneKana");
+      return;
+    }
     setErrorMsg("");
-    setMode(selectedMode);
+    setMode(setupMode);
 
-    let fullList = [];
-    if (selectedMode === "hiragana" || selectedMode === "both") fullList = [...fullList, ...Hiragana];
-    if (selectedMode === "katakana" || selectedMode === "both") fullList = [...fullList, ...Katakana];
+    let generatedList = [];
+    const scope = normalizeKanaMode(setupMode);
+    const limit = selectedKana.length;
+    const includeParam = encodeURIComponent(selectedKana.join(","));
 
-    if (fullList.length === 0) return;
+    if (!currentUser) {
+      setErrorMsg("errors.srsNotLoggedIn");
+      return;
+    }
 
-    const generatedList = [];
-    for (let i = 0; i < kanaCount; i++) {
-      const randomIndex = Math.floor(Math.random() * fullList.length);
-      generatedList.push(fullList[randomIndex]);
+    try {
+      const res = await fetch(`/api/kana/srs?userId=${currentUser.id}&limit=${limit}&scope=${scope}&strategy=${DEFAULT_LEARNING_STRATEGY}&include=${includeParam}`);
+      const data = await res.json();
+
+      if (res.ok && Array.isArray(data.cards) && data.cards.length > 0) {
+        generatedList = data.cards;
+      } else {
+        generatedList = buildFallbackSession(setupMode, limit).filter((item) => selectedKana.includes(item.kana));
+      }
+    } catch (err) {
+      console.error(err);
+      generatedList = buildFallbackSession(setupMode, limit).filter((item) => selectedKana.includes(item.kana));
+    }
+
+    if (generatedList.length === 0) {
+      setErrorMsg("errors.noKanaAvailable");
+      return;
     }
 
     setCurrentList(generatedList);
@@ -130,8 +169,55 @@ export default function useKanaEngine() {
     }
   };
 
+  const markIncorrect = (index) => {
+    if (status[index] !== undefined) return;
+    setStatus((previous) => ({ ...previous, [index]: "incorrect" }));
+  };
+
   const goHome = () => {
+    setErrorMsg("");
     setScreen("home");
+  };
+
+  const openSetup = (selectedMode) => {
+    const normalizedMode = normalizeKanaMode(selectedMode);
+    const deck = getKanaDeck(normalizedMode);
+    const kanaValues = deck.map((item) => item.kana);
+
+    setSetupMode(normalizedMode);
+    setAvailableKana(deck);
+    setSelectedKana(kanaValues);
+    setErrorMsg("");
+    setScreen("session_setup");
+  };
+
+  const toggleKana = (kana) => {
+    setSelectedKana((previous) => (
+      previous.includes(kana)
+        ? previous.filter((value) => value !== kana)
+        : [...previous, kana]
+    ));
+  };
+
+  const toggleKanaLine = (kanaLine) => {
+    setSelectedKana((previous) => {
+      const allSelected = kanaLine.every((kana) => previous.includes(kana));
+
+      if (allSelected) {
+        return previous.filter((kana) => !kanaLine.includes(kana));
+      }
+
+      const merged = new Set([...previous, ...kanaLine]);
+      return Array.from(merged);
+    });
+  };
+
+  const selectAllKana = () => {
+    setSelectedKana(availableKana.map((item) => item.kana));
+  };
+
+  const clearKanaSelection = () => {
+    setSelectedKana([]);
   };
 
   const goProfile = () => {
@@ -163,6 +249,8 @@ export default function useKanaEngine() {
   let maxWidthClass = "max-w-3xl"; // Home and Auth screens
   if (screen === "game") {
     maxWidthClass = "max-w-[98%]";
+  } else if (screen === "session_setup") {
+    maxWidthClass = "max-w-6xl";
   } else if (screen === "profile") {
     maxWidthClass = "max-w-4xl";
   } else if (screen === "admin" || screen === "admin_whisper") {
@@ -179,8 +267,9 @@ export default function useKanaEngine() {
     currentUser, setCurrentUser: handleSetCurrentUser, isAuthLoaded, logout,
     screen, kanaCount, setKanaCount, useTimer, setUseTimer, 
     timeLimit, setTimeLimit, timeLeft, errorMsg, 
+    setupMode, availableKana, selectedKana, toggleKana, toggleKanaLine, selectAllKana, clearKanaSelection,
     currentList, score, answers, setAnswers, status, inputsRef,
-    startGame, checkAnswer, goHome, goProfile, goAdmin, goWhisper, goLibrary, goPlayer,
+    startGame, openSetup, checkAnswer, markIncorrect, goHome, goProfile, goAdmin, goWhisper, goLibrary, goPlayer,
     selectedSessionId, maxWidthClass
   };
 }
