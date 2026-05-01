@@ -26,7 +26,8 @@
 		"themeChangeTitle": "Changer de theme",
 		"langSwitchJa": "Japonais (日本語)",
 		"langSwitchFr": "Francais",
-		"admin": "Administration"
+		"admin": "Administration",
+		"library": "Bibliothèque"
 	},
 	"auth": {
 		"welcome": "Bienvenue sur Nihon",
@@ -61,12 +62,37 @@
 		"edit": "Modifier",
 		"statsTitle": "Statistiques globales",
 		"gamesPlayed": "Parties jouees",
+		"globalAccuracy": "Précision Globale",
+		"masteredKanas": "Kanas Maîtrisés",
+		"totalTime": "Temps Total",
+		"bestScore": "Meilleur Score",
+		"recentHistory": "📈 Historique Récent",
+		"noRecentGames": "Aucune partie récente",
+		"mastered": "✨ Maîtrisés",
+		"playMoreMastered": "Jouez davantage pour voir vos Kanas forts",
+		"toReview": "🎯 À Réviser",
+		"playMoreReview": "Jouez davantage pour voir vos lacunes",
 		"correctAnswers": "Bonnes reponses",
 		"bestHiragana": "Record Hiragana",
 		"bestKatakana": "Record Katakana",
 		"errorSave": "Erreur lors de la sauvegarde",
 		"errorImageSize": "L'image est trop volumineuse (max 2 Mo)",
-		"memberSubtitle": "Membre de Nihon"
+		"memberSubtitle": "Membre de Nihon",
+		"tabOverview": "📊 Vue Globale",
+		"tabMastery": "🔠 Maîtrise des Kanas",
+		"tabHistory": "📜 Historique",
+		"masteryTitle": "Grille de Maîtrise",
+		"masterySubtitle": "Découvrez votre niveau sur chaque kana. Plus c'est vert, mieux c'est !",
+		"historyTitle": "Historique des Parties",
+		"historySubtitle": "Retrouvez ici l'ensemble de vos sessions précédentes.",
+		"colDate": "Date",
+		"colMode": "Mode",
+		"colScore": "Score",
+		"colTime": "Temps",
+		"masteryLegendMastered": "Maîtrisé (>80%)",
+		"masteryLegendLearning": "En cours (50-80%)",
+		"masteryLegendStruggling": "À réviser (<50%)",
+		"masteryLegendUnseen": "Non testé"
 	},
 	"score": {
 		"title": "Resultat de la session",
@@ -102,7 +128,8 @@
 		"tabs": {
 			"tools": "Outils & IA",
 			"users": "Utilisateurs",
-			"settings": "Paramètres"
+			"settings": "Paramètres",
+			"media": "Médias"
 		},
 		"tools": {
 			"beta": "Bêta",
@@ -144,6 +171,17 @@
 			"furiganaGenerating": "Génération en cours...",
 			"furiganaSuccess": "{count} lectures générées avec succès !",
 			"furiganaError": "Erreur lors de la génération des furigana."
+		},
+		"media": {
+			"title": "Bibliothèque Médias",
+			"desc": "Gérez vos transcriptions Whisper sauvegardées en base de données.",
+			"syncBtn": "Synchroniser depuis le disque",
+			"syncing": "Synchronisation...",
+			"syncSuccess": "{count} session(s) importée(s) avec succès !",
+			"syncError": "Erreur lors de la synchronisation.",
+			"exportBtn": "Exporter",
+			"deleteConfirm": "Êtes-vous sûr de vouloir supprimer cette session ?",
+			"empty": "Aucune session Whisper sauvegardée."
 		}
 	},
 	"whisper": {
@@ -183,5 +221,28 @@
 		"doneSubtitle": "Texte généré par l'IA Whisper",
 		"emptyTranscription": "Transcription vide ou non trouvée.",
 		"restartBtn": "Recommencer avec une autre vidéo"
+	},
+	"library": {
+		"title": "Bibliothèque",
+		"subtitle": "Vos vidéos transcrites prêtes à écouter et étudier.",
+		"backToHome": "Retour à l'accueil",
+		"myLibrary": "Ma bibliothèque",
+		"catalog": "Catalogue",
+		"searchPlaceholder": "Rechercher par titre...",
+		"emptyLibrary": "Votre bibliothèque est vide.",
+		"emptyCatalog": "Aucune vidéo disponible dans le catalogue.",
+		"browseCatalog": "Parcourir le catalogue",
+		"playBtn": "Écouter",
+		"addBtn": "Ajouter",
+		"removeBtn": "Retirer"
+	},
+	"player": {
+		"backToLibrary": "Bibliothèque",
+		"originalSubs": "Sous-titres originaux",
+		"romajiSubs": "Sous-titres Romaji",
+		"romaji": "Romaji",
+		"noSubs": "Aucun sous-titre disponible.",
+		"notFound": "Session introuvable.",
+		"shortcuts": "Espace: lecture · ←→: ±10s · ↑↓: volume"
 	}
 }

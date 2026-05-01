@@ -26,7 +26,8 @@
 		"themeChangeTitle": "テーマを変更",
 		"langSwitchJa": "日本語",
 		"langSwitchFr": "フランス語",
-		"admin": "管理"
+		"admin": "管理",
+		"library": "ライブラリ"
 	},
 	"auth": {
 		"welcome": "Nihonへようこそ",
@@ -61,12 +62,37 @@
 		"edit": "編集",
 		"statsTitle": "総合統計",
 		"gamesPlayed": "プレイ回数",
+		"globalAccuracy": "総合正解率",
+		"masteredKanas": "習得した仮名",
+		"totalTime": "合計時間",
+		"bestScore": "最高スコア",
+		"recentHistory": "📈 最近の履歴",
+		"noRecentGames": "最近のゲームはありません",
+		"mastered": "✨ 習得済み",
+		"playMoreMastered": "もっとプレイして得意な仮名を見つけよう",
+		"toReview": "🎯 復習が必要",
+		"playMoreReview": "もっとプレイして苦手な仮名を見つけよう",
 		"correctAnswers": "正解数",
 		"bestHiragana": "ひらがな記録",
 		"bestKatakana": "カタカナ記録",
 		"errorSave": "保存中にエラーが発生しました",
 		"errorImageSize": "画像が大きすぎます (最大 2 MB)",
-		"memberSubtitle": "Nihonのメンバー"
+		"memberSubtitle": "Nihonのメンバー",
+		"tabOverview": "📊 総合ビュー",
+		"tabMastery": "🔠 仮名の習熟度",
+		"tabHistory": "📜 履歴",
+		"masteryTitle": "習熟度グリッド",
+		"masterySubtitle": "各仮名のレベルを確認してください。緑色が濃いほど良いです！",
+		"historyTitle": "ゲーム履歴",
+		"historySubtitle": "過去のすべてのセッションをここで確認できます。",
+		"colDate": "日付",
+		"colMode": "モード",
+		"colScore": "スコア",
+		"colTime": "時間",
+		"masteryLegendMastered": "習得済み (>80%)",
+		"masteryLegendLearning": "学習中 (50-80%)",
+		"masteryLegendStruggling": "復習が必要 (<50%)",
+		"masteryLegendUnseen": "未テスト"
 	},
 	"score": {
 		"title": "セッション結果",
@@ -102,7 +128,8 @@
 		"tabs": {
 			"tools": "ツールとAI",
 			"users": "ユーザー",
-			"settings": "設定"
+			"settings": "設定",
+			"media": "メディア"
 		},
 		"tools": {
 			"beta": "ベータ版",
@@ -144,6 +171,17 @@
 			"furiganaGenerating": "生成中...",
 			"furiganaSuccess": "{count} 件の読みが正常に生成されました！",
 			"furiganaError": "振り仮名の生成中にエラーが発生しました。"
+		},
+		"media": {
+			"title": "メディアライブラリ",
+			"desc": "データベースに保存されたWhisper文字起こしを管理します。",
+			"syncBtn": "ディスクから同期",
+			"syncing": "同期中...",
+			"syncSuccess": "{count} 件のセッションがインポートされました！",
+			"syncError": "同期中にエラーが発生しました。",
+			"exportBtn": "エクスポート",
+			"deleteConfirm": "このセッションを削除してもよろしいですか？",
+			"empty": "保存されたWhisperセッションはありません。"
 		}
 	},
 	"whisper": {
@@ -183,5 +221,28 @@
 		"doneSubtitle": "Whisper AIによって生成されたテキスト",
 		"emptyTranscription": "文字起こしが空、または見つかりません。",
 		"restartBtn": "別の動画でやり直す"
+	},
+	"library": {
+		"title": "ライブラリ",
+		"subtitle": "文字起こし済みの動画を聴いて学習しましょう。",
+		"backToHome": "ホームに戻る",
+		"myLibrary": "マイライブラリ",
+		"catalog": "カタログ",
+		"searchPlaceholder": "タイトルで検索...",
+		"emptyLibrary": "ライブラリは空です。",
+		"emptyCatalog": "カタログに動画がありません。",
+		"browseCatalog": "カタログを見る",
+		"playBtn": "再生",
+		"addBtn": "追加",
+		"removeBtn": "削除"
+	},
+	"player": {
+		"backToLibrary": "ライブラリ",
+		"originalSubs": "オリジナル字幕",
+		"romajiSubs": "ローマ字字幕",
+		"romaji": "ローマ字",
+		"noSubs": "字幕がありません。",
+		"notFound": "セッションが見つかりません。",
+		"shortcuts": "スペース: 再生 · ←→: ±10秒 · ↑↓: 音量"
 	}
 }

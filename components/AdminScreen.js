@@ -20,6 +20,12 @@ export default function AdminScreen({ goHome, goWhisper, currentUser }) {
   const [dbMessage, setDbMessage] = useState({ text: "", type: "" });
   const [isGeneratingFurigana, setIsGeneratingFurigana] = useState(false);
   const [furiganaMessage, setFuriganaMessage] = useState({ text: "", type: "" });
+  
+  // Media State
+  const [sessions, setSessions] = useState([]);
+  const [isLoadingSessions, setIsLoadingSessions] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [mediaMessage, setMediaMessage] = useState({ text: "", type: "" });
   const fileInputRef = useRef(null);
 
   useEffect(() => {
@@ -41,6 +47,9 @@ export default function AdminScreen({ goHome, goWhisper, currentUser }) {
           console.error("Error loading settings:", err);
           setIsLoadingSettings(false);
         });
+    }
+    if (activeTab === "media") {
+      loadSessions();
     }
   }, [activeTab]);
 
@@ -103,6 +112,70 @@ export default function AdminScreen({ goHome, goWhisper, currentUser }) {
       setIsImporting(false);
       e.target.value = null;
       setTimeout(() => setDbMessage({ text: "", type: "" }), 5000);
+    }
+  };
+
+  // Media functions
+  const loadSessions = async () => {
+    setIsLoadingSessions(true);
+    try {
+      const res = await fetch('/api/whisper/sessions');
+      const data = await res.json();
+      setSessions(data.sessions || []);
+    } catch (err) {
+      console.error('Failed to load sessions:', err);
+    } finally {
+      setIsLoadingSessions(false);
+    }
+  };
+
+  const handleSyncMedia = async () => {
+    setIsSyncing(true);
+    setMediaMessage({ text: "", type: "" });
+    try {
+      const res = await fetch('/api/whisper/sessions/sync', { method: 'POST' });
+      const data = await res.json();
+      if (res.ok) {
+        setMediaMessage({ text: t("admin.media.syncSuccess").replace("{count}", data.imported), type: "success" });
+        await loadSessions();
+      } else {
+        setMediaMessage({ text: data.error, type: "error" });
+      }
+    } catch (err) {
+      setMediaMessage({ text: t("admin.media.syncError"), type: "error" });
+    } finally {
+      setIsSyncing(false);
+      setTimeout(() => setMediaMessage({ text: "", type: "" }), 5000);
+    }
+  };
+
+  const handleExportSession = async (id) => {
+    try {
+      const res = await fetch(`/api/whisper/sessions/${id}`);
+      const data = await res.json();
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${data.title || 'session'}_export.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Export failed:', err);
+    }
+  };
+
+  const handleDeleteSession = async (id) => {
+    if (!confirm(t("admin.media.deleteConfirm"))) return;
+    try {
+      await fetch('/api/whisper/sessions', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      });
+      await loadSessions();
+    } catch (err) {
+      console.error('Delete failed:', err);
     }
   };
 
@@ -194,6 +267,12 @@ export default function AdminScreen({ goHome, goWhisper, currentUser }) {
         >
           {t("admin.tabs.settings")}
         </button>
+        <button 
+          onClick={() => setActiveTab("media")}
+          className={`pb-4 px-2 font-bold text-lg transition-colors border-b-4 ${activeTab === "media" ? "border-indigo-500 text-indigo-600 dark:text-indigo-400" : "border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"}`}
+        >
+          {t("admin.tabs.media")}
+        </button>
       </div>
 
       {/* Content Area */}
@@ -257,6 +336,84 @@ export default function AdminScreen({ goHome, goWhisper, currentUser }) {
              <div className="text-6xl mb-4 opacity-50">👥</div>
              <h3 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">{t("admin.tools.usersTitle")}</h3>
              <p className="text-gray-500 dark:text-gray-400 max-w-md">{t("admin.tools.usersDesc")}</p>
+          </div>
+        )}
+
+        {activeTab === "media" && (
+          <div className="w-full bg-white/50 dark:bg-gray-800/50 backdrop-blur-md border border-gray-200 dark:border-gray-700 rounded-3xl p-8 flex flex-col shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8 border-b border-gray-200 dark:border-gray-700 pb-6">
+              <div className="flex items-center gap-4">
+                <div className="text-4xl">🎵</div>
+                <div>
+                  <h3 className="text-2xl font-bold text-gray-800 dark:text-white">{t("admin.media.title")}</h3>
+                  <p className="text-gray-500 dark:text-gray-400">{t("admin.media.desc")}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={handleSyncMedia}
+                disabled={isSyncing}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-xl shadow-lg transition-all flex items-center gap-2 disabled:opacity-50"
+              >
+                {isSyncing ? (
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                ) : (
+                  <span>🔄</span>
+                )}
+                {isSyncing ? t("admin.media.syncing") : t("admin.media.syncBtn")}
+              </button>
+            </div>
+
+            {mediaMessage.text && (
+              <div className={`mb-6 p-4 rounded-xl font-medium text-sm ${
+                mediaMessage.type === 'success' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400' :
+                'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+              }`}>
+                {mediaMessage.text}
+              </div>
+            )}
+
+            {isLoadingSessions ? (
+              <div className="flex justify-center py-12">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div>
+              </div>
+            ) : sessions.length === 0 ? (
+              <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+                <div className="text-5xl mb-4 opacity-50">📭</div>
+                <p className="font-semibold">{t("admin.media.empty")}</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {sessions.map(session => (
+                  <div key={session.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-5 bg-gray-50/80 dark:bg-gray-900/50 border border-gray-100 dark:border-gray-700 rounded-2xl hover:shadow-md transition-shadow">
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-bold text-gray-800 dark:text-white truncate">{session.title}</h4>
+                      <div className="flex items-center gap-3 mt-1 text-xs text-gray-500 dark:text-gray-400">
+                        <span>🎵 {session.audio_filename}</span>
+                        <span>📅 {new Date(session.created_at).toLocaleDateString()}</span>
+                        {session.language && session.language !== 'auto' && <span className="bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded-full font-bold">{session.language}</span>}
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleExportSession(session.id)}
+                        className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-sm transition-colors flex items-center gap-1"
+                      >
+                        <span>📥</span> {t("admin.media.exportBtn")}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteSession(session.id)}
+                        className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl text-sm transition-colors flex items-center gap-1"
+                      >
+                        <span>🗑️</span>
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 

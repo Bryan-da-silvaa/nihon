@@ -5,7 +5,7 @@ import path from 'path';
 import os from 'os';
 import Kuroshiro from "kuroshiro";
 import KuromojiAnalyzer from "kuroshiro-analyzer-kuromoji";
-import { getSystemConfig } from '../../../lib/db';
+import { getSystemConfig, query, initDb } from '../../../lib/db';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300; // 5 minutes max duration for vercel (ignored locally)
@@ -49,14 +49,16 @@ export async function GET(request) {
       try {
         const tempDir = os.tmpdir();
         const sessionId = Date.now().toString();
-        const videoPath = path.join(tempDir, `nihon_${sessionId}.mp4`);
+        let videoPath = path.join(tempDir, `nihon_${sessionId}.mp4`);
         const audioPath = path.join(tempDir, `nihon_${sessionId}.wav`);
         
         // Ensure permanent media directories exist
         const mediaDir = path.join(process.cwd(), 'media');
         const audioDestDir = path.join(mediaDir, 'audio');
+        const videoDestDir = path.join(mediaDir, 'video');
         const subsDestDir = path.join(mediaDir, 'transcripts');
         await fs.mkdir(audioDestDir, { recursive: true }).catch(() => {});
+        await fs.mkdir(videoDestDir, { recursive: true }).catch(() => {});
         await fs.mkdir(subsDestDir, { recursive: true }).catch(() => {});
 
         let videoTitle = "Vidéo YouTube";
@@ -101,7 +103,7 @@ export async function GET(request) {
             const ytdlpCommandStr = config.ytdlpCommand || "yt-dlp";
             const parts = ytdlpCommandStr.split(' ').filter(Boolean);
             const executable = parts[0];
-            const execArgs = [...parts.slice(1), ...antiBotArgs, '-f', 'bestaudio', '-o', videoPath, url];
+            const execArgs = [...parts.slice(1), ...antiBotArgs, '-f', 'bestvideo[height<=1080][ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best', '--merge-output-format', 'mp4', '-o', videoPath, url];
 
             const ytdlp = spawn(executable, execArgs);
             
@@ -212,11 +214,19 @@ export async function GET(request) {
                 // On garde le vrai titre (y compris les Kana/Kanji). On remplace juste les barres obliques pour ne pas créer de faux dossiers.
                 const safeTitle = videoTitle.replace(/[/\\?%*:|"<>]/g, '-').trim();
                 const finalAudioName = `${safeTitle}.wav`;
+                const finalVideoName = `${safeTitle}.mp4`;
                 const finalSubsName = `${safeTitle}.srt`;
                 
                 // Save files permanently
                 try {
                   await fs.copyFile(audioPath, path.join(audioDestDir, finalAudioName));
+                  let savedVideo = false;
+                  try {
+                    await fs.copyFile(videoPath, path.join(videoDestDir, finalVideoName));
+                    savedVideo = true;
+                  } catch (e) {
+                    console.log("No video file to save or error:", e.message);
+                  }
                   
                   // Copy whichever txt file exists
                   const finalSubsPath = path.join(subsDestDir, finalSubsName);
@@ -256,10 +266,22 @@ export async function GET(request) {
                       const romajiSubsPath = path.join(subsDestDir, romajiSubsName);
                       await fs.writeFile(romajiSubsPath, romajiLines.join('\n'));
                       
+                      // Save to database
+                      try {
+                        await initDb();
+                        await query(
+                          `INSERT INTO whisper_sessions (title, audio_filename, video_filename, subs_content, romaji_content, language) VALUES (?, ?, ?, ?, ?, ?)`,
+                          [videoTitle, finalAudioName, savedVideo ? finalVideoName : null, finalSrtContent, romajiLines.join('\n'), lang]
+                        );
+                      } catch (dbErr) {
+                        console.error("Could not save to DB:", dbErr);
+                      }
+                      
                       sendEvent(3, 100, { 
                         text: transcription, 
                         title: videoTitle,
                         audioFile: finalAudioName,
+                        videoFile: savedVideo ? finalVideoName : null,
                         transcriptFile: finalSubsName,
                         romajiFile: romajiSubsName
                       });
@@ -271,6 +293,7 @@ export async function GET(request) {
                         text: transcription, 
                         title: videoTitle,
                         audioFile: finalAudioName,
+                        videoFile: savedVideo ? finalVideoName : null,
                         transcriptFile: finalSubsName
                       });
                     }
@@ -279,6 +302,7 @@ export async function GET(request) {
                         text: transcription, 
                         title: videoTitle,
                         audioFile: finalAudioName,
+                        videoFile: savedVideo ? finalVideoName : null,
                         transcriptFile: finalSubsName
                       });
                   }

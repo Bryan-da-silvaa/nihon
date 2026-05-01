@@ -28,6 +28,7 @@ export default function useKanaEngine() {
 
   const [screen, setScreen] = useState("home");
   const [mode, setMode] = useState("hiragana");
+  const [selectedSessionId, setSelectedSessionId] = useState(null);
   const [kanaCount, setKanaCount] = useState(10);
   const [useTimer, setUseTimer] = useState(false);
   const [timeLimit, setTimeLimit] = useState(60);
@@ -38,16 +39,34 @@ export default function useKanaEngine() {
   const [score, setScore] = useState(0);
   const [answers, setAnswers] = useState({}); 
   const [status, setStatus] = useState({}); 
+  const [gameStartTime, setGameStartTime] = useState(null);
 
   const inputsRef = useRef([]);
 
   const saveScoreToDb = async (finalScore) => {
     if (!currentUser) return;
+    
+    // Calculate duration
+    const duration_seconds = gameStartTime ? Math.floor((Date.now() - gameStartTime) / 1000) : 0;
+    
+    // Prepare detailed kana stats
+    const kana_details = currentList.map((item, index) => ({
+      kana: item.kana,
+      correct: status[index] === "correct"
+    }));
+
     try {
       await fetch("/api/score", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: currentUser.id, mode, score: finalScore, total: currentList.length }),
+        body: JSON.stringify({ 
+          userId: currentUser.id, 
+          mode, 
+          score: finalScore, 
+          total: currentList.length,
+          duration_seconds,
+          kana_details
+        }),
       });
     } catch (err) {
       console.error("Erreur de sauvegarde en DB", err);
@@ -87,6 +106,7 @@ export default function useKanaEngine() {
     setAnswers({});
     setStatus({});
     setTimeLeft(timeLimit);
+    setGameStartTime(Date.now());
     inputsRef.current = [];
     setScreen("game");
     
@@ -126,6 +146,15 @@ export default function useKanaEngine() {
     setScreen("admin_whisper");
   };
 
+  const goLibrary = () => {
+    setScreen("library");
+  };
+
+  const goPlayer = (sessionId) => {
+    setSelectedSessionId(sessionId);
+    setScreen("player");
+  };
+
   const logout = () => {
     handleSetCurrentUser(null);
     setScreen("home");
@@ -138,6 +167,10 @@ export default function useKanaEngine() {
     maxWidthClass = "max-w-4xl";
   } else if (screen === "admin" || screen === "admin_whisper") {
     maxWidthClass = "max-w-6xl";
+  } else if (screen === "library") {
+    maxWidthClass = "max-w-6xl";
+  } else if (screen === "player") {
+    maxWidthClass = "max-w-7xl";
   } else if (screen === "score") {
     maxWidthClass = "max-w-2xl";
   }
@@ -147,7 +180,8 @@ export default function useKanaEngine() {
     screen, kanaCount, setKanaCount, useTimer, setUseTimer, 
     timeLimit, setTimeLimit, timeLeft, errorMsg, 
     currentList, score, answers, setAnswers, status, inputsRef,
-    startGame, checkAnswer, goHome, goProfile, goAdmin, goWhisper, maxWidthClass
+    startGame, checkAnswer, goHome, goProfile, goAdmin, goWhisper, goLibrary, goPlayer,
+    selectedSessionId, maxWidthClass
   };
 }
 

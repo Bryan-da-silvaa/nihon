@@ -8,6 +8,8 @@ import ProfileScreen from "../components/ProfileScreen";
 import AuthScreen from "../components/AuthScreen";
 import AdminScreen from "../components/AdminScreen";
 import WhisperScreen from "../components/WhisperScreen";
+import LibraryScreen from "../components/LibraryScreen";
+import PlayerScreen from "../components/PlayerScreen";
 import useKanaEngine from "../hooks/useKanaEngine";
 import { useLanguage } from "../context/LanguageContext";
 
@@ -18,7 +20,8 @@ export default function Home() {
     screen, kanaCount, setKanaCount, useTimer, setUseTimer, 
     timeLimit, setTimeLimit, timeLeft, errorMsg, 
     currentList, score, answers, setAnswers, status, inputsRef,
-    startGame, checkAnswer, goHome, goProfile, goAdmin, goWhisper, maxWidthClass
+    startGame, checkAnswer, goHome, goProfile, goAdmin, goWhisper, goLibrary, goPlayer,
+    selectedSessionId, maxWidthClass
   } = useKanaEngine();
 
   return (
@@ -26,6 +29,7 @@ export default function Home() {
       <Navbar 
         goProfile={goProfile} 
         goAdmin={goAdmin}
+        goLibrary={goLibrary}
         screen={screen} 
         goHome={goHome} 
         currentUser={currentUser} 
@@ -84,6 +88,14 @@ export default function Home() {
 
         {screen === "admin_whisper" && (
           <WhisperScreen goAdmin={goAdmin} />
+        )}
+
+        {screen === "library" && (
+          <LibraryScreen goHome={goHome} goPlayer={goPlayer} currentUser={currentUser} />
+        )}
+
+        {screen === "player" && (
+          <PlayerScreen sessionId={selectedSessionId} goLibrary={goLibrary} currentUser={currentUser} />
         )}
       </>)}
       </div>

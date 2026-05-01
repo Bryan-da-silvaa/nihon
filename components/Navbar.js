@@ -2,7 +2,7 @@ import { useState } from "react";
 import useDarkMode from "../hooks/useDarkMode";
 import { useLanguage } from "../context/LanguageContext";
 
-export default function Navbar({ goProfile, goAdmin, goHome, screen, currentUser, logout }) {
+export default function Navbar({ goProfile, goAdmin, goLibrary, goHome, screen, currentUser, logout }) {
   const [isDarkMode, setIsDarkMode] = useDarkMode();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { t, tNode, changeLanguage, language } = useLanguage();
@@ -53,6 +53,17 @@ export default function Navbar({ goProfile, goAdmin, goHome, screen, currentUser
                     className="w-full text-left px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-700 text-indigo-600 dark:text-indigo-400 font-bold transition-colors border-b border-gray-100 dark:border-gray-700 flex items-center gap-2"
                   >
                     <span>🛠️</span> {tNode('navbar.admin')}
+                  </button>
+                )}
+                {screen !== 'library' && (
+                  <button
+                    onClick={() => {
+                      if (goLibrary) goLibrary();
+                      setIsMenuOpen(false);
+                    }}
+                    className="w-full text-left px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-700 text-purple-600 dark:text-purple-400 font-bold transition-colors border-b border-gray-100 dark:border-gray-700 flex items-center gap-2"
+                  >
+                    <span>📚</span> {tNode('navbar.library')}
                   </button>
                 )}
                 <button

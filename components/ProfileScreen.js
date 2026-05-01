@@ -12,6 +12,7 @@ export default function ProfileScreen({ goHome, currentUser, setCurrentUser }) {
   const [newKanji, setNewKanji] = useState("");
   const [newReading, setNewReading] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
+  const [activeTab, setActiveTab] = useState("overview");
 
   const fetchProfile = useCallback(async () => {
     try {
@@ -86,6 +87,25 @@ export default function ProfileScreen({ goHome, currentUser, setCurrentUser }) {
         </button>
       </div>
     );
+  }
+
+  // Compute History Metrics
+  let avgScore = 0;
+  let avgTime = 0;
+  let favMode = "-";
+  let chartData = [];
+  
+  if (profile.all_recent_games && profile.all_recent_games.length > 0) {
+    const games = profile.all_recent_games;
+    const totalScorePct = games.reduce((acc, g) => acc + (g.score / g.total), 0);
+    avgScore = Math.round((totalScorePct / games.length) * 100);
+    const totalSeconds = games.reduce((acc, g) => acc + (g.duration_seconds || 0), 0);
+    avgTime = Math.round(totalSeconds / games.length);
+    const modeCounts = games.reduce((acc, g) => { acc[g.mode] = (acc[g.mode] || 0) + 1; return acc; }, {});
+    favMode = Object.keys(modeCounts).reduce((a, b) => modeCounts[a] > modeCounts[b] ? a : b);
+    
+    // Prepare chart data (oldest to newest)
+    chartData = games.slice().reverse().map(g => Math.round((g.score / g.total) * 100));
   }
 
   return (
@@ -191,38 +211,313 @@ export default function ProfileScreen({ goHome, currentUser, setCurrentUser }) {
           </div>
           {errorMsg && <div className="bg-red-100 text-red-600 p-3 rounded-lg mt-4 font-medium text-sm animate-pulse">{errorMsg}</div>}
 
-          <div className="mt-8">
-            <h4 className="text-2xl font-bold mb-6 text-gray-800 dark:text-white flex items-center gap-2">
-              📊 {tNode("profile.statsTitle")}
-            </h4>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-              
-              <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/40 dark:to-blue-800/40 border border-blue-100 dark:border-blue-700/50 p-6 rounded-2xl shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 flex flex-col items-center sm:items-start">
-                <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white text-xl mb-3 shadow-md shadow-blue-500/30">🎮</div>
-                <p className="text-sm font-semibold text-blue-600 dark:text-blue-300 mb-1">{tNode("profile.gamesPlayed")}</p>
-                <p className="text-3xl font-black text-gray-800 dark:text-white">{profile.games_played}</p>
-              </div>
+          {/* TABS NAVIGATION */}
+          <div className="mt-10 flex flex-wrap gap-2 sm:gap-4 border-b border-gray-200 dark:border-gray-700 w-full">
+            <button 
+              onClick={() => setActiveTab("overview")}
+              className={`px-4 py-3 font-bold text-sm sm:text-base border-b-4 transition-all duration-300 ${activeTab === 'overview' ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400' : 'border-transparent text-gray-500 hover:text-gray-800 dark:hover:text-white'}`}
+            >
+              {tNode("profile.tabOverview")}
+            </button>
+            <button 
+              onClick={() => setActiveTab("mastery")}
+              className={`px-4 py-3 font-bold text-sm sm:text-base border-b-4 transition-all duration-300 ${activeTab === 'mastery' ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400' : 'border-transparent text-gray-500 hover:text-gray-800 dark:hover:text-white'}`}
+            >
+              {tNode("profile.tabMastery")}
+            </button>
+            <button 
+              onClick={() => setActiveTab("history")}
+              className={`px-4 py-3 font-bold text-sm sm:text-base border-b-4 transition-all duration-300 ${activeTab === 'history' ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400' : 'border-transparent text-gray-500 hover:text-gray-800 dark:hover:text-white'}`}
+            >
+              {tNode("profile.tabHistory")}
+            </button>
+          </div>
 
-              <div className="bg-gradient-to-br from-green-50 to-emerald-100 dark:from-green-900/40 dark:to-emerald-800/40 border border-green-100 dark:border-green-700/50 p-6 rounded-2xl shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 flex flex-col items-center sm:items-start">
-                <div className="w-10 h-10 bg-emerald-500 rounded-full flex items-center justify-center text-white text-xl mb-3 shadow-md shadow-emerald-500/30">🎯</div>
-                <p className="text-sm font-semibold text-emerald-600 dark:text-emerald-300 mb-1">{tNode("profile.correctAnswers")}</p>
-                <p className="text-3xl font-black text-gray-800 dark:text-white">{profile.total_correct}</p>
-              </div>
+          <div className="mt-8 w-full">
+            {activeTab === "overview" && (
+              <div className="animate-fade-in">
+                {/* Overview Cards */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                  <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-5 rounded-2xl shadow-sm flex flex-col relative overflow-hidden group">
+                    <div className="absolute -right-4 -bottom-4 text-6xl opacity-5 group-hover:opacity-10 transition-opacity pointer-events-none">🎮</div>
+                    <p className="text-sm text-gray-500 font-bold uppercase tracking-wider mb-1">{tNode("profile.gamesPlayed")}</p>
+                    <p className="text-3xl font-black text-indigo-600 dark:text-indigo-400">{profile.games_played || 0}</p>
+                  </div>
+                  <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-5 rounded-2xl shadow-sm flex flex-col relative overflow-hidden group">
+                    <div className="absolute -right-4 -bottom-4 text-6xl opacity-5 group-hover:opacity-10 transition-opacity pointer-events-none">🎯</div>
+                    <p className="text-sm text-gray-500 font-bold uppercase tracking-wider mb-1">{tNode("profile.globalAccuracy")}</p>
+                    <div className="flex items-baseline gap-1">
+                      <p className="text-3xl font-black text-emerald-500 dark:text-emerald-400">{profile.global_accuracy || 0}</p>
+                      <span className="text-xl font-bold text-emerald-500/60">%</span>
+                    </div>
+                  </div>
+                  <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-5 rounded-2xl shadow-sm flex flex-col relative overflow-hidden group">
+                    <div className="absolute -right-4 -bottom-4 text-6xl opacity-5 group-hover:opacity-10 transition-opacity pointer-events-none">✨</div>
+                    <p className="text-sm text-gray-500 font-bold uppercase tracking-wider mb-1">{tNode("profile.masteredKanas")}</p>
+                    <div className="flex items-baseline gap-2">
+                      <p className="text-3xl font-black text-amber-500 dark:text-amber-400">{profile.mastered_count || 0}</p>
+                      <span className="text-xs font-bold text-amber-500/60">/142</span>
+                    </div>
+                  </div>
+                  <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-5 rounded-2xl shadow-sm flex flex-col relative overflow-hidden group">
+                    <div className="absolute -right-4 -bottom-4 text-6xl opacity-5 group-hover:opacity-10 transition-opacity pointer-events-none">⏱️</div>
+                    <p className="text-sm text-gray-500 font-bold uppercase tracking-wider mb-1">{tNode("profile.totalTime")}</p>
+                    <p className="text-3xl font-black text-pink-500 dark:text-pink-400">
+                      {profile.total_time ? (profile.total_time >= 3600 ? `${Math.floor(profile.total_time/3600)}h ${Math.floor((profile.total_time%3600)/60)}m` : `${Math.floor(profile.total_time/60)}m`) : "0m"}
+                    </p>
+                  </div>
+                </div>
 
-              <div className="bg-gradient-to-br from-purple-50 to-fuchsia-100 dark:from-purple-900/40 dark:to-fuchsia-800/40 border border-purple-100 dark:border-purple-700/50 p-6 rounded-2xl shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 flex flex-col items-center sm:items-start">
-                <div className="w-10 h-10 bg-purple-500 rounded-full flex items-center justify-center text-white text-xl mb-3 shadow-md shadow-purple-500/30">✨</div>
-                <p className="text-sm font-semibold text-purple-600 dark:text-purple-300 mb-1">{tNode("profile.bestHiragana")}</p>
-                <p className="text-3xl font-black text-gray-800 dark:text-white">{profile.best_score_hiragana}</p>
-              </div>
+                <div className="w-full">
+                  {/* Strongest / Weakest Kanas */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-8">
+                    <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800/50 p-6 rounded-3xl shadow-sm flex flex-col">
+                      <h5 className="font-bold text-emerald-700 dark:text-emerald-400 mb-4 flex items-center gap-2">{tNode("profile.mastered")}</h5>
+                      {profile.strongest_kanas && profile.strongest_kanas.length > 0 ? (
+                        <div className="flex flex-col gap-3 mt-auto">
+                          {profile.strongest_kanas.map((k, i) => (
+                            <div key={i} className="flex items-center gap-3">
+                              <div className="w-8 text-center font-black text-xl text-gray-800 dark:text-gray-200">{k.kana}</div>
+                              <div className="flex-1 h-2.5 bg-emerald-200 dark:bg-emerald-900/50 rounded-full overflow-hidden shadow-inner">
+                                <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${k.ratio}%` }}></div>
+                              </div>
+                              <div className="w-9 text-right text-xs font-bold text-emerald-600 dark:text-emerald-400">{Math.round(k.ratio)}%</div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-sm text-emerald-600/50 italic my-auto text-center">{tNode("profile.playMoreMastered")}</div>
+                      )}
+                    </div>
 
-              <div className="bg-gradient-to-br from-orange-50 to-amber-100 dark:from-orange-900/40 dark:to-amber-800/40 border border-orange-100 dark:border-orange-700/50 p-6 rounded-2xl shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 flex flex-col items-center sm:items-start">
-                <div className="w-10 h-10 bg-orange-500 rounded-full flex items-center justify-center text-white text-xl mb-3 shadow-md shadow-orange-500/30">🏆</div>
-                <p className="text-sm font-semibold text-orange-600 dark:text-orange-300 mb-1">{tNode("profile.bestKatakana")}</p>
-                <p className="text-3xl font-black text-gray-800 dark:text-white">{profile.best_score_katakana}</p>
+                    <div className="bg-rose-50 dark:bg-rose-900/20 border border-rose-100 dark:border-rose-800/50 p-5 rounded-3xl shadow-sm flex flex-col">
+                      <h5 className="font-bold text-rose-700 dark:text-rose-400 mb-4 flex items-center gap-2">{tNode("profile.toReview")}</h5>
+                      {profile.weakest_kanas && profile.weakest_kanas.length > 0 ? (
+                        <div className="flex flex-col gap-3 mt-auto">
+                          {profile.weakest_kanas.map((k, i) => (
+                            <div key={i} className="flex items-center gap-3">
+                              <div className="w-8 text-center font-black text-xl text-gray-800 dark:text-gray-200">{k.kana}</div>
+                              <div className="flex-1 h-2.5 bg-rose-200 dark:bg-rose-900/50 rounded-full overflow-hidden shadow-inner">
+                                <div className="h-full bg-rose-500 rounded-full" style={{ width: `${k.ratio}%` }}></div>
+                              </div>
+                              <div className="w-9 text-right text-xs font-bold text-rose-600 dark:text-rose-400">{Math.round(k.ratio)}%</div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-sm text-rose-600/50 italic my-auto text-center">{tNode("profile.playMoreReview")}</div>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
+            )}
 
-            </div>
+            {activeTab === "mastery" && (
+              <div className="animate-fade-in bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-6 sm:p-8 rounded-3xl shadow-sm">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
+                  <div>
+                    <h5 className="font-bold text-2xl text-gray-800 dark:text-white">{tNode("profile.masteryTitle")}</h5>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{tNode("profile.masterySubtitle")}</p>
+                  </div>
+                  
+                  {/* Legend */}
+                  <div className="flex flex-wrap gap-3 text-xs font-bold">
+                    <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-sm bg-emerald-500"></div> {tNode("profile.masteryLegendMastered")}</div>
+                    <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-sm bg-amber-400"></div> {tNode("profile.masteryLegendLearning")}</div>
+                    <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-sm bg-rose-500"></div> {tNode("profile.masteryLegendStruggling")}</div>
+                    <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-sm bg-gray-200 dark:bg-gray-700"></div> {tNode("profile.masteryLegendUnseen")}</div>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-2 sm:gap-3 justify-center">
+                  {/* Render the Heatmap from all_kana_stats */}
+                  {/* Using Hiragana and Katakana lists from data (need to import them if not imported, or just map what we have in all_kana_stats) */}
+                  {profile.all_kana_stats && profile.all_kana_stats.length > 0 ? (
+                    profile.all_kana_stats.map((stat, i) => {
+                      const r = stat.ratio;
+                      let bgColor = "bg-gray-200 dark:bg-gray-700 text-gray-500";
+                      if (stat.attempts >= 1) {
+                        if (r >= 80) bgColor = "bg-emerald-500 text-white shadow-emerald-500/30";
+                        else if (r >= 50) bgColor = "bg-amber-400 text-gray-900 shadow-amber-400/30";
+                        else bgColor = "bg-rose-500 text-white shadow-rose-500/30";
+                      }
+                      
+                      return (
+                        <div 
+                          key={i} 
+                          className={`group relative w-12 h-12 sm:w-14 sm:h-14 rounded-xl flex items-center justify-center font-black text-xl sm:text-2xl shadow-sm transition-transform hover:scale-110 cursor-default ${bgColor}`}
+                        >
+                          {stat.kana}
+                          {/* Tooltip */}
+                          <div className="absolute bottom-full mb-2 opacity-0 group-hover:opacity-100 bg-gray-900 text-white text-xs font-bold py-1.5 px-3 rounded-lg pointer-events-none transition-opacity whitespace-nowrap z-20 shadow-xl border border-gray-700">
+                            <div className="text-center text-lg mb-1">{stat.kana}</div>
+                            {stat.attempts > 0 ? (
+                              <>
+                                <div className="text-gray-300">{stat.correct} / {stat.attempts} justes</div>
+                                <div className="text-center text-indigo-300 mt-1">{Math.round(r)}%</div>
+                              </>
+                            ) : (
+                              <div className="text-gray-400 italic">Non testé</div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <div className="py-10 text-gray-500 italic text-center w-full">{tNode("profile.playMoreMastered")}</div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {activeTab === "history" && (
+              <div className="animate-fade-in space-y-6">
+                
+                {/* Analytics Header */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-5 rounded-2xl shadow-sm flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-2xl">📈</div>
+                    <div>
+                      <div className="text-sm font-bold text-gray-500 uppercase">Moyenne Récente</div>
+                      <div className="text-2xl font-black text-gray-800 dark:text-white">{avgScore}%</div>
+                    </div>
+                  </div>
+                  <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-5 rounded-2xl shadow-sm flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-full bg-pink-100 dark:bg-pink-900/30 flex items-center justify-center text-2xl">⏱️</div>
+                    <div>
+                      <div className="text-sm font-bold text-gray-500 uppercase">Temps Moyen</div>
+                      <div className="text-2xl font-black text-gray-800 dark:text-white">{Math.floor(avgTime/60)}m {avgTime%60}s</div>
+                    </div>
+                  </div>
+                  <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-5 rounded-2xl shadow-sm flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center text-2xl">🎮</div>
+                    <div>
+                      <div className="text-sm font-bold text-gray-500 uppercase">Mode Favori</div>
+                      <div className="text-2xl font-black text-gray-800 dark:text-white capitalize">{favMode === 'both' ? 'Mixte' : favMode}</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Trend Chart */}
+                {chartData.length > 1 && (
+                  <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-6 rounded-3xl shadow-sm">
+                    <h5 className="font-bold text-gray-800 dark:text-white mb-6">Évolution du Score (50 dernières parties)</h5>
+                    <div className="relative w-full h-32 flex items-end">
+                      <svg className="w-full h-full overflow-visible" preserveAspectRatio="none">
+                        {/* Area */}
+                        <polygon 
+                          points={`0,128 ${chartData.map((val, i) => `${(i / (chartData.length - 1)) * 100}%,${128 - (val * 1.28)}`).join(' ')} 100%,128`}
+                          className="fill-indigo-500/10 dark:fill-indigo-400/10"
+                        />
+                        {/* Line */}
+                        <polyline 
+                          points={chartData.map((val, i) => `${(i / (chartData.length - 1)) * 100}%,${128 - (val * 1.28)}`).join(' ')}
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="3"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          className="text-indigo-500 dark:text-indigo-400 drop-shadow-md"
+                        />
+                        {/* Points */}
+                        {chartData.map((val, i) => (
+                          <circle 
+                            key={i}
+                            cx={`${(i / (chartData.length - 1)) * 100}%`}
+                            cy={`${128 - (val * 1.28)}`}
+                            r="4"
+                            className="fill-white dark:fill-gray-800 stroke-indigo-500 dark:stroke-indigo-400"
+                            strokeWidth="2"
+                          />
+                        ))}
+                      </svg>
+                    </div>
+                  </div>
+                )}
+
+                {/* Timeline / Cards */}
+                <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-6 sm:p-8 rounded-3xl shadow-sm">
+                  <div className="mb-6 flex justify-between items-end">
+                    <div>
+                      <h5 className="font-bold text-2xl text-gray-800 dark:text-white">{tNode("profile.historyTitle")}</h5>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{tNode("profile.historySubtitle")}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-4">
+                    {profile.all_recent_games && profile.all_recent_games.length > 0 ? (
+                      profile.all_recent_games.map((game, i) => {
+                        const dateObj = new Date(game.created_at);
+                        const dateStr = dateObj.toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+                        const timeStr = dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                        const percent = Math.round((game.score / game.total) * 100);
+                        const duration = game.duration_seconds ? `${Math.floor(game.duration_seconds/60)}m ${game.duration_seconds%60}s` : '-';
+                        
+                        let modeColor = "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300";
+                        let modeIcon = "📝";
+                        if (game.mode === 'hiragana') { modeColor = "bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400"; modeIcon = "あ"; }
+                        if (game.mode === 'katakana') { modeColor = "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"; modeIcon = "ア"; }
+                        if (game.mode === 'both') { modeColor = "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400"; modeIcon = "両"; }
+
+                        // Color logic for score
+                        let scoreColor = "text-rose-500";
+                        let ringColor = "stroke-rose-500";
+                        if (percent === 100) { scoreColor = "text-emerald-500"; ringColor = "stroke-emerald-500"; }
+                        else if (percent > 60) { scoreColor = "text-indigo-500"; ringColor = "stroke-indigo-500"; }
+
+                        return (
+                          <div key={i} className="flex items-center justify-between p-4 rounded-2xl border border-gray-100 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-all duration-300 group">
+                            
+                            <div className="flex items-center gap-4 sm:gap-6">
+                              {/* Date Badge */}
+                              <div className="flex flex-col items-center justify-center w-14 h-14 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 group-hover:bg-white dark:group-hover:bg-gray-700 shadow-sm transition-colors">
+                                <span className="text-xs font-bold uppercase">{dateStr.split(' ')[1] || dateStr}</span>
+                                <span className="text-lg font-black text-gray-800 dark:text-white leading-tight">{dateStr.split(' ')[0]}</span>
+                              </div>
+
+                              {/* Info */}
+                              <div>
+                                <div className="flex items-center gap-2 mb-1">
+                                  <span className={`px-2 py-0.5 rounded flex items-center gap-1 text-xs font-bold uppercase ${modeColor}`}>
+                                    <span>{modeIcon}</span> {game.mode === 'both' ? 'Mixte' : game.mode}
+                                  </span>
+                                </div>
+                                <div className="text-sm font-medium text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                                  <span>{timeStr}</span>
+                                  <span className="opacity-50">•</span>
+                                  <span>⏱️ {duration}</span>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Score Ring */}
+                            <div className="flex items-center gap-4">
+                              <div className="text-right hidden sm:block">
+                                <div className={`text-xl font-black ${scoreColor}`}>{percent}%</div>
+                                <div className="text-xs font-bold text-gray-400">{game.score} / {game.total} justes</div>
+                              </div>
+                              <div className="relative w-14 h-14 flex items-center justify-center">
+                                <svg className="w-full h-full transform -rotate-90">
+                                  <circle cx="28" cy="28" r="24" className="stroke-gray-200 dark:stroke-gray-700" strokeWidth="4" fill="none" />
+                                  <circle cx="28" cy="28" r="24" className={ringColor} strokeWidth="4" fill="none" strokeDasharray="150.8" strokeDashoffset={150.8 - (150.8 * percent) / 100} strokeLinecap="round" />
+                                </svg>
+                                <span className="absolute text-sm font-bold text-gray-800 dark:text-white sm:hidden">{percent}%</span>
+                              </div>
+                            </div>
+                            
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <div className="py-10 text-center text-gray-500 italic bg-gray-50 dark:bg-gray-800/50 rounded-2xl">
+                        {tNode("profile.noRecentGames")}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
