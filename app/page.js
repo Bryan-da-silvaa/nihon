@@ -18,12 +18,15 @@ export default function Home() {
   const { t } = useLanguage();
   const {
     currentUser, setCurrentUser, isAuthLoaded, logout,
-    screen, kanaCount, setKanaCount, useTimer, setUseTimer, 
+    screen, useTimer, setUseTimer, 
     timeLimit, setTimeLimit, timeLeft, errorMsg, 
     setupMode, availableKana, selectedKana, toggleKana, toggleKanaLine, selectAllKana, clearKanaSelection,
+    learningStrategy, sessionIntensity, setSessionIntensity,
+    aivisSpeakerId, setAivisSpeakerId,
+    enableKanaAudio, setEnableKanaAudio, requireVoiceAnswer, setRequireVoiceAnswer,
     currentList, score, answers, setAnswers, status, inputsRef,
     startGame, openSetup, checkAnswer, markIncorrect, goHome, goProfile, goAdmin, goWhisper, goLibrary, goPlayer,
-    selectedSessionId, maxWidthClass
+    selectedSessionId, maxWidthClass, profileTab
   } = useKanaEngine();
 
   return (
@@ -66,6 +69,15 @@ export default function Home() {
                 setUseTimer={setUseTimer}
                 timeLimit={timeLimit}
                 setTimeLimit={setTimeLimit}
+                learningStrategy={learningStrategy}
+                sessionIntensity={sessionIntensity}
+                setSessionIntensity={setSessionIntensity}
+                enableKanaAudio={enableKanaAudio}
+                setEnableKanaAudio={setEnableKanaAudio}
+                requireVoiceAnswer={requireVoiceAnswer}
+                setRequireVoiceAnswer={setRequireVoiceAnswer}
+                aivisSpeakerId={aivisSpeakerId}
+                setAivisSpeakerId={setAivisSpeakerId}
                 errorMsg={errorMsg}
               />
             )}
@@ -82,6 +94,9 @@ export default function Home() {
             checkAnswer={checkAnswer}
             markIncorrect={markIncorrect}
             inputsRef={inputsRef}
+            enableKanaAudio={enableKanaAudio}
+            requireVoiceAnswer={requireVoiceAnswer}
+            aivisSpeakerId={aivisSpeakerId}
           />
         )}
 
@@ -94,7 +109,7 @@ export default function Home() {
         )}
 
         {screen === "profile" && (
-          <ProfileScreen goHome={goHome} currentUser={currentUser} setCurrentUser={setCurrentUser} />
+          <ProfileScreen key={profileTab} goHome={goHome} currentUser={currentUser} setCurrentUser={setCurrentUser} initialTab={profileTab} />
         )}
 
         {screen === "admin" && (

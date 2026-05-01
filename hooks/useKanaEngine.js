@@ -5,6 +5,17 @@ import { getKanaDeck, normalizeKanaMode, shuffleDeck } from "../lib/kana";
 
 const DEFAULT_LEARNING_STRATEGY = "balanced";
 
+const SESSION_INTENSITY_LIMITS = {
+  focused: 12,
+  standard: 24,
+  intensive: 40,
+};
+
+function resolveSessionLimit(intensity, selectedCount) {
+  const baseLimit = SESSION_INTENSITY_LIMITS[intensity] || SESSION_INTENSITY_LIMITS.standard;
+  return Math.max(1, Math.min(baseLimit, selectedCount));
+}
+
 export default function useKanaEngine() {
   const [currentUser, setCurrentUser] = useState(null);
   const [isAuthLoaded, setIsAuthLoaded] = useState(false);
@@ -28,12 +39,17 @@ export default function useKanaEngine() {
   };
 
   const [screen, setScreen] = useState("home");
+  const [profileTab, setProfileTab] = useState("overview");
   const [mode, setMode] = useState("hiragana");
   const [setupMode, setSetupMode] = useState("both");
   const [availableKana, setAvailableKana] = useState([]);
   const [selectedKana, setSelectedKana] = useState([]);
   const [selectedSessionId, setSelectedSessionId] = useState(null);
-  const [kanaCount, setKanaCount] = useState(10);
+  const [learningStrategy, setLearningStrategy] = useState(DEFAULT_LEARNING_STRATEGY);
+  const [sessionIntensity, setSessionIntensity] = useState("standard");
+  const [aivisSpeakerId, setAivisSpeakerId] = useState(888753760);
+  const [enableKanaAudio, setEnableKanaAudio] = useState(true);
+  const [requireVoiceAnswer, setRequireVoiceAnswer] = useState(false);
   const [useTimer, setUseTimer] = useState(false);
   const [timeLimit, setTimeLimit] = useState(60);
   const [timeLeft, setTimeLeft] = useState(60);
@@ -41,35 +57,53 @@ export default function useKanaEngine() {
 
   const [currentList, setCurrentList] = useState([]);
   const [score, setScore] = useState(0);
-  const [answers, setAnswers] = useState({}); 
-  const [status, setStatus] = useState({}); 
+  const [answers, setAnswers] = useState({});
+  const [status, setStatus] = useState({});
   const [gameStartTime, setGameStartTime] = useState(null);
 
   const inputsRef = useRef([]);
 
+  useEffect(() => {
+    if (!currentUser?.id) return;
+
+    const loadUserLearningPreferences = async () => {
+      try {
+        const res = await fetch(`/api/profile?userId=${currentUser.id}`);
+        const data = await res.json();
+        if (res.ok) {
+          setLearningStrategy(data.learning_strategy || DEFAULT_LEARNING_STRATEGY);
+          setSessionIntensity(data.session_intensity || "standard");
+          setAivisSpeakerId(data.aivis_speaker_id || 888753760);
+        }
+      } catch (error) {
+        console.error("Unable to load learning preferences", error);
+      }
+    };
+
+    loadUserLearningPreferences();
+  }, [currentUser]);
+
   const saveScoreToDb = async (finalScore) => {
     if (!currentUser) return;
-    
-    // Calculate duration
+
     const duration_seconds = gameStartTime ? Math.floor((Date.now() - gameStartTime) / 1000) : 0;
-    
-    // Prepare detailed kana stats
+
     const kana_details = currentList.map((item, index) => ({
       kana: item.kana,
-      correct: status[index] === "correct"
+      correct: status[index] === "correct",
     }));
 
     try {
       await fetch("/api/score", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          userId: currentUser.id, 
-          mode, 
-          score: finalScore, 
+        body: JSON.stringify({
+          userId: currentUser.id,
+          mode,
+          score: finalScore,
           total: currentList.length,
           duration_seconds,
-          kana_details
+          kana_details,
         }),
       });
     } catch (err) {
@@ -100,20 +134,17 @@ export default function useKanaEngine() {
   useGameCompletion(screen, currentList, status, finishGame);
 
   const startGame = async () => {
-    if (kanaCount > 500) {
-      setErrorMsg("errors.kanaLimit");
-      return;
-    }
     if (selectedKana.length === 0) {
       setErrorMsg("errors.selectAtLeastOneKana");
       return;
     }
+
     setErrorMsg("");
     setMode(setupMode);
 
     let generatedList = [];
     const scope = normalizeKanaMode(setupMode);
-    const limit = selectedKana.length;
+    const limit = resolveSessionLimit(sessionIntensity, selectedKana.length);
     const includeParam = encodeURIComponent(selectedKana.join(","));
 
     if (!currentUser) {
@@ -122,7 +153,7 @@ export default function useKanaEngine() {
     }
 
     try {
-      const res = await fetch(`/api/kana/srs?userId=${currentUser.id}&limit=${limit}&scope=${scope}&strategy=${DEFAULT_LEARNING_STRATEGY}&include=${includeParam}`);
+      const res = await fetch(`/api/kana/srs?userId=${currentUser.id}&limit=${limit}&scope=${scope}&strategy=${learningStrategy}&include=${includeParam}`);
       const data = await res.json();
 
       if (res.ok && Array.isArray(data.cards) && data.cards.length > 0) {
@@ -148,7 +179,7 @@ export default function useKanaEngine() {
     setGameStartTime(Date.now());
     inputsRef.current = [];
     setScreen("game");
-    
+
     setTimeout(() => {
       if (inputsRef.current[0]) inputsRef.current[0].focus();
     }, 100);
@@ -156,14 +187,14 @@ export default function useKanaEngine() {
 
   const checkAnswer = (index, value) => {
     const val = value.trim().toLowerCase();
-    if (!val) return; 
+    if (!val) return;
 
     const correctRomaji = currentList[index].romaji;
     const isCorrect = val === correctRomaji;
 
     setStatus((prev) => ({ ...prev, [index]: isCorrect ? "correct" : "incorrect" }));
     if (isCorrect) setScore((prev) => prev + 1);
-    
+
     if (index + 1 < currentList.length) {
       inputsRef.current[index + 1]?.focus();
     }
@@ -220,7 +251,8 @@ export default function useKanaEngine() {
     setSelectedKana([]);
   };
 
-  const goProfile = () => {
+  const goProfile = (tab = "overview") => {
+    setProfileTab(tab);
     setScreen("profile");
   };
 
@@ -246,7 +278,7 @@ export default function useKanaEngine() {
     setScreen("home");
   };
 
-  let maxWidthClass = "max-w-3xl"; // Home and Auth screens
+  let maxWidthClass = "max-w-3xl";
   if (screen === "game") {
     maxWidthClass = "max-w-[98%]";
   } else if (screen === "session_setup") {
@@ -265,12 +297,14 @@ export default function useKanaEngine() {
 
   return {
     currentUser, setCurrentUser: handleSetCurrentUser, isAuthLoaded, logout,
-    screen, kanaCount, setKanaCount, useTimer, setUseTimer, 
-    timeLimit, setTimeLimit, timeLeft, errorMsg, 
+    screen, useTimer, setUseTimer,
+    timeLimit, setTimeLimit, timeLeft, errorMsg,
     setupMode, availableKana, selectedKana, toggleKana, toggleKanaLine, selectAllKana, clearKanaSelection,
+    learningStrategy, setLearningStrategy, sessionIntensity, setSessionIntensity,
+    aivisSpeakerId, setAivisSpeakerId,
+    enableKanaAudio, setEnableKanaAudio, requireVoiceAnswer, setRequireVoiceAnswer,
     currentList, score, answers, setAnswers, status, inputsRef,
     startGame, openSetup, checkAnswer, markIncorrect, goHome, goProfile, goAdmin, goWhisper, goLibrary, goPlayer,
-    selectedSessionId, maxWidthClass
+    selectedSessionId, maxWidthClass, profileTab,
   };
 }
-

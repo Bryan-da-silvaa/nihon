@@ -36,7 +36,7 @@ export default function Navbar({ goProfile, goAdmin, goLibrary, goHome, screen, 
                 {screen !== 'profile' && (
                   <button
                     onClick={() => {
-                      goProfile();
+                      goProfile("overview");
                       setIsMenuOpen(false);
                     }}
                     className="w-full text-left px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 font-bold transition-colors border-b border-gray-100 dark:border-gray-700"
@@ -44,6 +44,15 @@ export default function Navbar({ goProfile, goAdmin, goLibrary, goHome, screen, 
                     {t('navbar.myProfile')}
                   </button>
                 )}
+                <button
+                  onClick={() => {
+                    goProfile("preferences");
+                    setIsMenuOpen(false);
+                  }}
+                  className="w-full text-left px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-700 text-cyan-700 dark:text-cyan-300 font-bold transition-colors border-b border-gray-100 dark:border-gray-700 flex items-center gap-2"
+                >
+                  <span>⚙️</span> {tNode('navbar.learningPreferences')}
+                </button>
                 {screen !== 'admin' && (
                   <button
                     onClick={() => {

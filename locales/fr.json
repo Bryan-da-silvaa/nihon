@@ -40,7 +40,23 @@
 		"unselectLine": "Désélectionner la ligne",
 		"clear": "Tout effacer",
 		"selectedCount": "Kanas sélectionnés : {count}",
-		"start": "Commencer la Session"
+		"start": "Commencer la Session",
+		"intensitySection": "Rythme de Session",
+		"intensityFocused": "Focus (12)",
+		"intensityFocusedDesc": "Session courte pour une concentration maximale.",
+		"intensityStandard": "Standard (24)",
+		"intensityStandardDesc": "Cadence équilibrée pour progresser régulièrement.",
+		"intensityIntensive": "Intensive (40)",
+		"intensityIntensiveDesc": "Volume élevé pour accélérer la mémorisation.",
+		"objectiveManagedByProfile": "Objectif défini dans votre profil utilisateur",
+		"audioSection": "Audio & Voix",
+		"enablePronunciationAudio": "Activer la prononciation audio des kana",
+		"enableVoiceValidation": "Validation vocale des cartes",
+		"voiceValidationDesc": "La carte doit être validée à l'oral (micro requis).",
+		"aivisSpeakerLabel": "Speaker Aivis",
+		"aivisSpeakerDesc": "ID du speaker local AivisSpeech utilisé pour la prononciation.",
+		"previewVoice": "Pré-écouter la voix",
+		"previewLoading": "Pré-écoute..."
 	},
 	"game": {
 		"backToHome": "Retour a l'accueil",
@@ -64,7 +80,14 @@
 		"reviewDue": "À revoir",
 		"reviewWeak": "Fragile",
 		"reviewLearning": "En apprentissage",
-		"reviewMastered": "Maîtrisé"
+		"reviewMastered": "Maîtrisé",
+		"playPronunciation": "Écouter",
+		"speakToAnswer": "Répondre à l'oral",
+		"listening": "Écoute en cours...",
+		"voiceNotSupported": "Reconnaissance vocale non supportée sur ce navigateur.",
+		"voiceError": "Erreur micro/reconnaissance.",
+		"voiceHeard": "Entendu: {value}",
+		"loadingAudio": "Chargement audio..."
 	},
 	"navbar": {
 		"brand": "Nihon",
@@ -76,7 +99,8 @@
 		"langSwitchJa": "Japonais (日本語)",
 		"langSwitchFr": "Francais",
 		"admin": "Administration",
-		"library": "Bibliothèque"
+		"library": "Bibliothèque",
+		"learningPreferences": "Préférences"
 	},
 	"auth": {
 		"welcome": "Bienvenue sur Nihon",
@@ -141,7 +165,31 @@
 		"masteryLegendMastered": "Maîtrisé (>80%)",
 		"masteryLegendLearning": "En cours (50-80%)",
 		"masteryLegendStruggling": "À réviser (<50%)",
-		"masteryLegendUnseen": "Non testé"
+		"masteryLegendUnseen": "Non testé",
+		"learningObjectiveLabel": "Objectif pédagogique",
+		"defaultIntensityLabel": "Intensité par défaut",
+		"usernamePlaceholder": "Pseudo",
+		"kanjiPlaceholder": "Nom en kanji (optionnel)",
+		"readingPlaceholder": "Lecture (optionnel)",
+		"tabPreferences": "⚙️ Préférences",
+		"learningPreferencesTitle": "Préférences d'apprentissage",
+		"learningPreferencesSubtitle": "Définissez votre objectif pédagogique et l'intensité par défaut des sessions.",
+		"savePreferences": "Enregistrer les préférences",
+		"preferencesSaved": "Préférences enregistrées.",
+		"clearDataTitle": "Réinitialiser mes données",
+		"clearDataDesc": "Supprime vos statistiques, historique de sessions, progression SRS et éléments de bibliothèque personnels. Votre compte est conservé.",
+		"clearDataButton": "Effacer mes données",
+		"clearingData": "Suppression en cours...",
+		"clearDataSuccess": "Vos données utilisateur ont été supprimées.",
+		"clearDataError": "Impossible de supprimer vos données pour le moment.",
+		"clearDataConfirm": "Confirmer la suppression de toutes vos données d'apprentissage ? Cette action est irréversible.",
+		"cancel": "Annuler",
+		"confirmDelete": "Confirmer la suppression",
+		"preferencesSectionLearning": "Pédagogie",
+		"preferencesSectionSession": "Session",
+		"preferencesSectionData": "Données utilisateur",
+		"aivisSpeakerLabel": "Speaker Aivis",
+		"aivisSpeakerDesc": "Identifiant du speaker local AivisSpeech pour la lecture des kana."
 	},
 	"score": {
 		"title": "Resultat de la session",

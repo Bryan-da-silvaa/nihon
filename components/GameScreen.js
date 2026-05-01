@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useLanguage } from "../context/LanguageContext";
 import Ruby from "./Ruby";
 
@@ -12,10 +12,19 @@ export default function GameScreen({
   setAnswers,
   checkAnswer,
   markIncorrect,
-  inputsRef
+  inputsRef,
+  enableKanaAudio,
+  requireVoiceAnswer,
+  aivisSpeakerId,
 }) {
   const { t, tNode, language } = useLanguage();
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [isListening, setIsListening] = useState(false);
+  const [voiceFeedback, setVoiceFeedback] = useState("");
+  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
+  const recognitionRef = useRef(null);
+  const [preferredJaVoice, setPreferredJaVoice] = useState(null);
+  const localAudioRef = useRef(null);
 
   const answeredCount = Object.keys(status).length;
   const correctCount = Object.values(status).filter((value) => value === "correct").length;
@@ -31,6 +40,65 @@ export default function GameScreen({
       inputsRef.current[currentIndex].focus();
     }
   }, [currentIndex, isCurrentAnswered, inputsRef]);
+
+  useEffect(() => {
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.abort();
+      }
+      if (typeof window !== "undefined" && window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+      }
+      if (localAudioRef.current) {
+        localAudioRef.current.pause();
+        localAudioRef.current = null;
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.speechSynthesis) return;
+
+    const pickBestJaVoice = () => {
+      const voices = window.speechSynthesis.getVoices() || [];
+      if (voices.length === 0) return;
+
+      const jaVoices = voices.filter((voice) => (voice.lang || "").toLowerCase().startsWith("ja"));
+      if (jaVoices.length === 0) return;
+
+      const preferredNameHints = [
+        "kyoko",
+        "otoya",
+        "siri",
+        "haruka",
+        "ichiro",
+        "japanese",
+      ];
+
+      const scored = jaVoices.map((voice) => {
+        const lowerName = (voice.name || "").toLowerCase();
+        let score = 0;
+        if (voice.localService) score += 3;
+        if (voice.default) score += 2;
+        for (let i = 0; i < preferredNameHints.length; i += 1) {
+          if (lowerName.includes(preferredNameHints[i])) {
+            score += (preferredNameHints.length - i);
+            break;
+          }
+        }
+        return { voice, score };
+      });
+
+      scored.sort((left, right) => right.score - left.score);
+      setPreferredJaVoice(scored[0].voice);
+    };
+
+    pickBestJaVoice();
+    window.speechSynthesis.addEventListener("voiceschanged", pickBestJaVoice);
+    return () => {
+      window.speechSynthesis.removeEventListener("voiceschanged", pickBestJaVoice);
+    };
+  }, []);
 
   const reviewClass = useMemo(() => {
     if (!currentItem?.reviewType) return "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300";
@@ -81,6 +149,109 @@ export default function GameScreen({
   if (!currentItem) {
     return null;
   }
+
+  const toHiragana = (value) => value.replace(/[\u30a1-\u30f6]/g, (match) => String.fromCharCode(match.charCodeAt(0) - 0x60));
+
+  const normalizeSpeech = (value) => (value || "").toLowerCase().replace(/[^\p{L}\p{N}]+/gu, "");
+
+  const isSpeechCorrect = (spokenText) => {
+    const normalized = normalizeSpeech(spokenText);
+    const expectedKana = normalizeSpeech(currentItem.kana);
+    const expectedHiragana = normalizeSpeech(toHiragana(currentItem.kana));
+    const expectedRomaji = normalizeSpeech(currentItem.romaji);
+
+    return normalized.includes(expectedKana) || normalized.includes(expectedHiragana) || normalized === expectedRomaji;
+  };
+
+  const playBrowserPronunciation = () => {
+    if (!enableKanaAudio || typeof window === "undefined" || !window.speechSynthesis) return;
+    const utterance = new SpeechSynthesisUtterance(currentItem.kana);
+    utterance.lang = "ja-JP";
+    utterance.rate = 0.88;
+    utterance.pitch = 1.0;
+    if (preferredJaVoice) {
+      utterance.voice = preferredJaVoice;
+    }
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utterance);
+  };
+
+  const playPronunciation = async () => {
+    if (!enableKanaAudio || isPlayingAudio || typeof window === "undefined") return;
+
+    setIsPlayingAudio(true);
+    try {
+      const res = await fetch("/api/tts/kana", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: currentItem.kana, speaker: aivisSpeakerId }),
+      });
+
+      if (!res.ok) {
+        playBrowserPronunciation();
+        return;
+      }
+
+      const audioBlob = await res.blob();
+      const audioUrl = URL.createObjectURL(audioBlob);
+      const audio = new Audio(audioUrl);
+      localAudioRef.current = audio;
+      audio.onended = () => {
+        URL.revokeObjectURL(audioUrl);
+        localAudioRef.current = null;
+      };
+      await audio.play();
+    } catch (error) {
+      playBrowserPronunciation();
+    } finally {
+      setIsPlayingAudio(false);
+    }
+  };
+
+  const startVoiceValidation = () => {
+    if (isCurrentAnswered || isListening || (useTimer && timeLeft <= 0)) return;
+    if (typeof window === "undefined") return;
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      setVoiceFeedback(tNode("game.voiceNotSupported"));
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = "ja-JP";
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    recognition.onstart = () => {
+      setIsListening(true);
+      setVoiceFeedback(tNode("game.listening"));
+    };
+
+    recognition.onresult = (event) => {
+      const transcript = event.results?.[0]?.[0]?.transcript || "";
+      setVoiceFeedback(tNode("game.voiceHeard").replace("{value}", transcript));
+      setAnswers((previous) => ({ ...previous, [currentIndex]: transcript }));
+
+      if (isSpeechCorrect(transcript)) {
+        checkAnswer(currentIndex, currentItem.romaji);
+      } else {
+        markIncorrect(currentIndex);
+      }
+    };
+
+    recognition.onerror = () => {
+      setVoiceFeedback(tNode("game.voiceError"));
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+    };
+
+    recognitionRef.current = recognition;
+    recognition.start();
+  };
 
   return (
     <div className="relative w-full mx-auto py-4">
@@ -165,13 +336,15 @@ export default function GameScreen({
                 onKeyDown={(event) => {
                   if (event.key === "Enter") {
                     if (!isCurrentAnswered) {
-                      handleSubmit();
+                      if (!requireVoiceAnswer) {
+                        handleSubmit();
+                      }
                     } else {
                       goNextCard();
                     }
                   }
                 }}
-                disabled={isCurrentAnswered || (useTimer && timeLeft <= 0)}
+                disabled={requireVoiceAnswer || isCurrentAnswered || (useTimer && timeLeft <= 0)}
                 autoComplete="off"
                 autoCorrect="off"
                 autoCapitalize="none"
@@ -180,6 +353,11 @@ export default function GameScreen({
             </div>
 
             <div className="h-8 mb-6">
+              {!currentStatus && voiceFeedback && (
+                <span className="inline-flex items-center gap-2 text-cyan-600 dark:text-cyan-300 font-bold text-sm">
+                  {voiceFeedback}
+                </span>
+              )}
               {currentStatus === "correct" && (
                 <span className="inline-flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-black">
                   ✓ {tNode("game.feedbackCorrect")}
@@ -193,6 +371,16 @@ export default function GameScreen({
             </div>
 
             <div className="flex flex-wrap items-center justify-center gap-3">
+              {enableKanaAudio && (
+                <button
+                  type="button"
+                  onClick={playPronunciation}
+                  disabled={isPlayingAudio}
+                  className="px-5 py-3 rounded-xl border border-cyan-300 dark:border-cyan-700 text-cyan-700 dark:text-cyan-300 font-bold bg-cyan-50/80 dark:bg-cyan-900/20"
+                >
+                  🔊 {isPlayingAudio ? tNode("game.loadingAudio") : tNode("game.playPronunciation")}
+                </button>
+              )}
               {!isCurrentAnswered && (
                 <>
                   <button
@@ -202,13 +390,23 @@ export default function GameScreen({
                   >
                     {tNode("game.unknownButton")}
                   </button>
-                  <button
-                    type="button"
-                    onClick={handleSubmit}
-                    className="px-8 py-3 rounded-xl bg-gradient-to-r from-cyan-600 to-emerald-500 text-white font-black shadow-lg"
-                  >
-                    {tNode("game.checkButton")}
-                  </button>
+                  {requireVoiceAnswer ? (
+                    <button
+                      type="button"
+                      onClick={startVoiceValidation}
+                      className="px-8 py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-cyan-500 text-white font-black shadow-lg"
+                    >
+                      {isListening ? tNode("game.listening") : tNode("game.speakToAnswer")}
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleSubmit}
+                      className="px-8 py-3 rounded-xl bg-gradient-to-r from-cyan-600 to-emerald-500 text-white font-black shadow-lg"
+                    >
+                      {tNode("game.checkButton")}
+                    </button>
+                  )}
                 </>
               )}
 

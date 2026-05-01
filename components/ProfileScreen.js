@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
 import { useLanguage } from "../context/LanguageContext";
 import Ruby from "./Ruby";
+import { getKanaDeck, getKanaColumnIndex, getKanaRowKey } from "../lib/kana";
 
-export default function ProfileScreen({ goHome, currentUser, setCurrentUser }) {
+export default function ProfileScreen({ goHome, currentUser, setCurrentUser, initialTab = "overview" }) {
   const { t, tNode } = useLanguage();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -11,8 +12,24 @@ export default function ProfileScreen({ goHome, currentUser, setCurrentUser }) {
   const [newAvatar, setNewAvatar] = useState(null);
   const [newKanji, setNewKanji] = useState("");
   const [newReading, setNewReading] = useState("");
+  const [learningStrategy, setLearningStrategy] = useState("balanced");
+  const [sessionIntensity, setSessionIntensity] = useState("standard");
+  const [aivisSpeakerId, setAivisSpeakerId] = useState(888753760);
   const [errorMsg, setErrorMsg] = useState("");
-  const [activeTab, setActiveTab] = useState("overview");
+  const [successMsg, setSuccessMsg] = useState("");
+  const [isClearingData, setIsClearingData] = useState(false);
+  const [showClearDataModal, setShowClearDataModal] = useState(false);
+  const [activeTab, setActiveTab] = useState(initialTab);
+  const [preferencesSection, setPreferencesSection] = useState("learning");
+  const [masteryScript, setMasteryScript] = useState("hiragana");
+  const [aivisSpeakers, setAivisSpeakers] = useState([]);
+  const [isPreviewPlaying, setIsPreviewPlaying] = useState(false);
+  const strategyOptions = [
+    { id: "balanced", label: t("home.focusBalanced"), desc: t("home.focusBalancedDesc") },
+    { id: "review", label: t("home.focusReview"), desc: t("home.focusReviewDesc") },
+    { id: "foundation", label: t("home.focusFoundation"), desc: t("home.focusFoundationDesc") },
+    { id: "weak", label: t("home.focusWeak"), desc: t("home.focusWeakDesc") },
+  ];
 
   const fetchProfile = useCallback(async () => {
     try {
@@ -24,6 +41,9 @@ export default function ProfileScreen({ goHome, currentUser, setCurrentUser }) {
         setNewAvatar(data.avatar);
         setNewKanji(data.kanji || "");
         setNewReading(data.reading || "");
+        setLearningStrategy(data.learning_strategy || "balanced");
+        setSessionIntensity(data.session_intensity || "standard");
+        setAivisSpeakerId(data.aivis_speaker_id || 888753760);
       }
     } catch (err) {
       console.error(err);
@@ -36,6 +56,21 @@ export default function ProfileScreen({ goHome, currentUser, setCurrentUser }) {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (currentUser) fetchProfile();
   }, [currentUser, fetchProfile]);
+
+  useEffect(() => {
+    const loadSpeakers = async () => {
+      try {
+        const res = await fetch("/api/tts/speakers");
+        const data = await res.json();
+        if (res.ok && Array.isArray(data.speakers)) {
+          setAivisSpeakers(data.speakers);
+        }
+      } catch (error) {
+        setAivisSpeakers([]);
+      }
+    };
+    loadSpeakers();
+  }, []);
 
   const handleAvatarChange = (e) => {
     const file = e.target.files[0];
@@ -54,16 +89,42 @@ export default function ProfileScreen({ goHome, currentUser, setCurrentUser }) {
 
   const saveProfile = async () => {
     setErrorMsg("");
+    setSuccessMsg("");
     try {
       const res = await fetch("/api/profile", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: currentUser.id, username: newUsername, avatar: newAvatar, kanji: newKanji, reading: newReading }),
+        body: JSON.stringify({
+          userId: currentUser.id,
+          username: newUsername,
+          avatar: newAvatar,
+          kanji: newKanji,
+          reading: newReading,
+          learningStrategy,
+          sessionIntensity,
+          aivisSpeakerId,
+        }),
       });
       const data = await res.json();
       if (res.ok) {
-        setProfile({ ...profile, username: data.username, avatar: data.avatar, kanji: data.kanji, reading: data.reading });
-        setCurrentUser({ ...currentUser, username: data.username, avatar: data.avatar });
+        setProfile({
+          ...profile,
+          username: data.username,
+          avatar: data.avatar,
+          kanji: data.kanji,
+          reading: data.reading,
+          learning_strategy: data.learning_strategy,
+          session_intensity: data.session_intensity,
+          aivis_speaker_id: data.aivis_speaker_id,
+        });
+        setCurrentUser({
+          ...currentUser,
+          username: data.username,
+          avatar: data.avatar,
+          learning_strategy: data.learning_strategy,
+          session_intensity: data.session_intensity,
+          aivis_speaker_id: data.aivis_speaker_id,
+        });
         setEditing(false);
       } else {
         setErrorMsg(t(data.error));
@@ -71,6 +132,96 @@ export default function ProfileScreen({ goHome, currentUser, setCurrentUser }) {
     } catch (err) {
       setErrorMsg(t("profile.errorSave"));
       console.error(err);
+    }
+  };
+
+  const saveLearningPreferences = async () => {
+    setErrorMsg("");
+    setSuccessMsg("");
+    try {
+      const res = await fetch("/api/profile", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: currentUser.id,
+          username: newUsername,
+          avatar: newAvatar,
+          kanji: newKanji,
+          reading: newReading,
+          learningStrategy,
+          sessionIntensity,
+          aivisSpeakerId,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setProfile({
+          ...profile,
+          learning_strategy: data.learning_strategy,
+          session_intensity: data.session_intensity,
+          aivis_speaker_id: data.aivis_speaker_id,
+        });
+        setCurrentUser({
+          ...currentUser,
+          learning_strategy: data.learning_strategy,
+          session_intensity: data.session_intensity,
+          aivis_speaker_id: data.aivis_speaker_id,
+        });
+        setSuccessMsg(t("profile.preferencesSaved"));
+      } else {
+        setErrorMsg(t(data.error));
+      }
+    } catch (err) {
+      setErrorMsg(t("profile.errorSave"));
+      console.error(err);
+    }
+  };
+
+  const previewSpeakerVoice = async () => {
+    if (isPreviewPlaying) return;
+    setIsPreviewPlaying(true);
+    try {
+      const res = await fetch("/api/tts/preview", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ speaker: aivisSpeakerId, text: "こんにちは、これは選択中の音声です。" }),
+      });
+      if (!res.ok) return;
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      audio.onended = () => URL.revokeObjectURL(url);
+      await audio.play();
+    } catch (error) {
+      // ignore
+    } finally {
+      setIsPreviewPlaying(false);
+    }
+  };
+
+  const clearUserData = async () => {
+    setErrorMsg("");
+    setSuccessMsg("");
+    setIsClearingData(true);
+    try {
+      const res = await fetch("/api/profile/data", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: currentUser.id }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        setErrorMsg(t(data.error || "profile.clearDataError"));
+      } else {
+        setSuccessMsg(t("profile.clearDataSuccess"));
+        await fetchProfile();
+        setShowClearDataModal(false);
+      }
+    } catch (error) {
+      console.error(error);
+      setErrorMsg(t("profile.clearDataError"));
+    } finally {
+      setIsClearingData(false);
     }
   };
 
@@ -89,11 +240,12 @@ export default function ProfileScreen({ goHome, currentUser, setCurrentUser }) {
     );
   }
 
+  const getMasteryRowLabel = (rowKey) => (rowKey === "vowel" ? "A" : rowKey.toUpperCase());
+
   // Compute History Metrics
   let avgScore = 0;
   let avgTime = 0;
   let favMode = "-";
-  let chartData = [];
   
   if (profile.all_recent_games && profile.all_recent_games.length > 0) {
     const games = profile.all_recent_games;
@@ -104,12 +256,10 @@ export default function ProfileScreen({ goHome, currentUser, setCurrentUser }) {
     const modeCounts = games.reduce((acc, g) => { acc[g.mode] = (acc[g.mode] || 0) + 1; return acc; }, {});
     favMode = Object.keys(modeCounts).reduce((a, b) => modeCounts[a] > modeCounts[b] ? a : b);
     
-    // Prepare chart data (oldest to newest)
-    chartData = games.slice().reverse().map(g => Math.round((g.score / g.total) * 100));
   }
 
   return (
-    <div className="flex flex-col items-center w-full max-w-4xl mx-auto py-6">
+    <div className="flex flex-col items-center w-full max-w-6xl mx-auto py-6">
       <h2 className="text-4xl md:text-5xl font-extrabold mb-10 bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-indigo-600 dark:from-blue-400 dark:to-indigo-400 drop-shadow-sm">
         {tNode("profile.title")}
       </h2>
@@ -182,6 +332,39 @@ export default function ProfileScreen({ goHome, currentUser, setCurrentUser }) {
                       placeholder={t('profile.readingPlaceholder')}
                     />
                   </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 w-full">
+                    <div>
+                      <label className="text-xs font-bold uppercase tracking-[0.14em] text-gray-500 dark:text-gray-400">
+                        {tNode("profile.learningObjectiveLabel")}
+                      </label>
+                      <select
+                        value={learningStrategy}
+                        onChange={(e) => setLearningStrategy(e.target.value)}
+                        className="mt-1 w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white/70 dark:bg-gray-900/70"
+                      >
+                        {strategyOptions.map((option) => (
+                          <option key={option.id} value={option.id}>{option.label}</option>
+                        ))}
+                      </select>
+                      <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                        {(strategyOptions.find((option) => option.id === learningStrategy) || strategyOptions[0]).desc}
+                      </p>
+                    </div>
+                    <div>
+                      <label className="text-xs font-bold uppercase tracking-[0.14em] text-gray-500 dark:text-gray-400">
+                        {tNode("profile.defaultIntensityLabel")}
+                      </label>
+                      <select
+                        value={sessionIntensity}
+                        onChange={(e) => setSessionIntensity(e.target.value)}
+                        className="mt-1 w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white/70 dark:bg-gray-900/70"
+                      >
+                        <option value="focused">{t("setup.intensityFocused")}</option>
+                        <option value="standard">{t("setup.intensityStandard")}</option>
+                        <option value="intensive">{t("setup.intensityIntensive")}</option>
+                      </select>
+                    </div>
+                  </div>
                   <div className="flex justify-center sm:justify-start gap-3">
                     <button onClick={saveProfile} className="px-6 py-2.5 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold rounded-xl shadow-lg hover:shadow-green-500/30 hover:scale-105 active:scale-95 transition-all duration-300">
                       {t("profile.save")}
@@ -210,6 +393,7 @@ export default function ProfileScreen({ goHome, currentUser, setCurrentUser }) {
 
           </div>
           {errorMsg && <div className="bg-red-100 text-red-600 p-3 rounded-lg mt-4 font-medium text-sm animate-pulse">{errorMsg}</div>}
+          {successMsg && <div className="bg-emerald-100 text-emerald-700 p-3 rounded-lg mt-4 font-medium text-sm">{successMsg}</div>}
 
           {/* TABS NAVIGATION */}
           <div className="mt-10 flex flex-wrap gap-2 sm:gap-4 border-b border-gray-200 dark:border-gray-700 w-full">
@@ -230,6 +414,12 @@ export default function ProfileScreen({ goHome, currentUser, setCurrentUser }) {
               className={`px-4 py-3 font-bold text-sm sm:text-base border-b-4 transition-all duration-300 ${activeTab === 'history' ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400' : 'border-transparent text-gray-500 hover:text-gray-800 dark:hover:text-white'}`}
             >
               {tNode("profile.tabHistory")}
+            </button>
+            <button
+              onClick={() => setActiveTab("preferences")}
+              className={`px-4 py-3 font-bold text-sm sm:text-base border-b-4 transition-all duration-300 ${activeTab === 'preferences' ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400' : 'border-transparent text-gray-500 hover:text-gray-800 dark:hover:text-white'}`}
+            >
+              {tNode("profile.tabPreferences")}
             </button>
           </div>
 
@@ -314,7 +504,7 @@ export default function ProfileScreen({ goHome, currentUser, setCurrentUser }) {
             )}
 
             {activeTab === "mastery" && (
-              <div className="animate-fade-in bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-6 sm:p-8 rounded-3xl shadow-sm">
+              <div className="animate-fade-in">
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
                   <div>
                     <h5 className="font-bold text-2xl text-gray-800 dark:text-white">{tNode("profile.masteryTitle")}</h5>
@@ -329,45 +519,85 @@ export default function ProfileScreen({ goHome, currentUser, setCurrentUser }) {
                     <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-sm bg-gray-200 dark:bg-gray-700"></div> {tNode("profile.masteryLegendUnseen")}</div>
                   </div>
                 </div>
-
-                <div className="flex flex-wrap gap-2 sm:gap-3 justify-center">
-                  {/* Render the Heatmap from all_kana_stats */}
-                  {/* Using Hiragana and Katakana lists from data (need to import them if not imported, or just map what we have in all_kana_stats) */}
-                  {profile.all_kana_stats && profile.all_kana_stats.length > 0 ? (
-                    profile.all_kana_stats.map((stat, i) => {
-                      const r = stat.ratio;
-                      let bgColor = "bg-gray-200 dark:bg-gray-700 text-gray-500";
-                      if (stat.attempts >= 1) {
-                        if (r >= 80) bgColor = "bg-emerald-500 text-white shadow-emerald-500/30";
-                        else if (r >= 50) bgColor = "bg-amber-400 text-gray-900 shadow-amber-400/30";
-                        else bgColor = "bg-rose-500 text-white shadow-rose-500/30";
-                      }
-                      
-                      return (
-                        <div 
-                          key={i} 
-                          className={`group relative w-12 h-12 sm:w-14 sm:h-14 rounded-xl flex items-center justify-center font-black text-xl sm:text-2xl shadow-sm transition-transform hover:scale-110 cursor-default ${bgColor}`}
-                        >
-                          {stat.kana}
-                          {/* Tooltip */}
-                          <div className="absolute bottom-full mb-2 opacity-0 group-hover:opacity-100 bg-gray-900 text-white text-xs font-bold py-1.5 px-3 rounded-lg pointer-events-none transition-opacity whitespace-nowrap z-20 shadow-xl border border-gray-700">
-                            <div className="text-center text-lg mb-1">{stat.kana}</div>
-                            {stat.attempts > 0 ? (
-                              <>
-                                <div className="text-gray-300">{stat.correct} / {stat.attempts} justes</div>
-                                <div className="text-center text-indigo-300 mt-1">{Math.round(r)}%</div>
-                              </>
-                            ) : (
-                              <div className="text-gray-400 italic">Non testé</div>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })
-                  ) : (
-                    <div className="py-10 text-gray-500 italic text-center w-full">{tNode("profile.playMoreMastered")}</div>
-                  )}
+                <div className="flex gap-2 mb-5">
+                  <button
+                    type="button"
+                    onClick={() => setMasteryScript("hiragana")}
+                    className={`px-4 py-2 rounded-xl border font-bold text-sm ${masteryScript === "hiragana" ? "border-pink-400 bg-pink-50 dark:bg-pink-900/20 text-pink-700 dark:text-pink-300" : "border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300"}`}
+                  >
+                    {tNode("home.hiragana")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setMasteryScript("katakana")}
+                    className={`px-4 py-2 rounded-xl border font-bold text-sm ${masteryScript === "katakana" ? "border-blue-400 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300" : "border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300"}`}
+                  >
+                    {tNode("home.katakana")}
+                  </button>
                 </div>
+
+                {(() => {
+                  const statsMap = new Map((profile.all_kana_stats || []).map((item) => [item.kana, item]));
+                  const deck = getKanaDeck(masteryScript);
+                  const rows = deck.reduce((accumulator, item) => {
+                    const rowKey = getKanaRowKey(item.romaji);
+                    if (!accumulator[rowKey]) accumulator[rowKey] = [];
+                    accumulator[rowKey].push(item);
+                    return accumulator;
+                  }, {});
+
+                  Object.keys(rows).forEach((rowKey) => {
+                    rows[rowKey].sort((left, right) => getKanaColumnIndex(left.romaji) - getKanaColumnIndex(right.romaji));
+                  });
+
+                  const orderedRowKeys = Object.keys(rows).sort((left, right) => {
+                    const leftRank = rows[left][0]?.rowRank ?? 999;
+                    const rightRank = rows[right][0]?.rowRank ?? 999;
+                    return leftRank - rightRank;
+                  });
+
+                  return (
+                    <div className="space-y-3">
+                      {orderedRowKeys.map((rowKey) => {
+                        const rowItems = rows[rowKey];
+                        const rowStats = rowItems.map((item) => statsMap.get(item.kana)).filter(Boolean);
+                        const rowMastery = rowStats.length > 0
+                          ? Math.round(rowStats.reduce((sum, stat) => sum + (stat.ratio || 0), 0) / rowStats.length)
+                          : 0;
+
+                        return (
+                          <div key={rowKey} className="rounded-2xl border border-gray-200 dark:border-gray-700 p-3 sm:p-4 bg-white/50 dark:bg-gray-900/35">
+                            <div className="flex items-center justify-between mb-2">
+                              <p className="text-xs font-black uppercase tracking-[0.18em] text-gray-500 dark:text-gray-400">{getMasteryRowLabel(rowKey)}</p>
+                              <p className="text-xs font-bold text-gray-500 dark:text-gray-400">{rowMastery}%</p>
+                            </div>
+                            <div className="grid grid-cols-5 gap-2">
+                              {rowItems.map((item) => {
+                                const stat = statsMap.get(item.kana);
+                                const attempts = stat?.attempts || 0;
+                                const ratio = stat?.ratio || 0;
+                                let bgColor = "bg-gray-200 dark:bg-gray-700 text-gray-500";
+                                if (attempts >= 1) {
+                                  if (ratio >= 80) bgColor = "bg-emerald-500 text-white";
+                                  else if (ratio >= 50) bgColor = "bg-amber-400 text-gray-900";
+                                  else bgColor = "bg-rose-500 text-white";
+                                }
+                                return (
+                                  <div key={item.kana} className={`group relative h-12 rounded-xl flex items-center justify-center font-black text-xl shadow-sm ${bgColor}`}>
+                                    {item.kana}
+                                    <div className="absolute bottom-full mb-2 opacity-0 group-hover:opacity-100 bg-gray-900 text-white text-xs font-bold py-1 px-2 rounded-md pointer-events-none whitespace-nowrap z-20">
+                                      {attempts > 0 ? `${Math.round(ratio)}% (${stat.correct}/${attempts})` : tNode("profile.masteryLegendUnseen")}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
               </div>
             )}
 
@@ -398,43 +628,6 @@ export default function ProfileScreen({ goHome, currentUser, setCurrentUser }) {
                     </div>
                   </div>
                 </div>
-
-                {/* Trend Chart */}
-                {chartData.length > 1 && (
-                  <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-6 rounded-3xl shadow-sm">
-                    <h5 className="font-bold text-gray-800 dark:text-white mb-6">Évolution du Score (50 dernières parties)</h5>
-                    <div className="relative w-full h-32 flex items-end">
-                      <svg className="w-full h-full overflow-visible" preserveAspectRatio="none">
-                        {/* Area */}
-                        <polygon 
-                          points={`0,128 ${chartData.map((val, i) => `${(i / (chartData.length - 1)) * 100}%,${128 - (val * 1.28)}`).join(' ')} 100%,128`}
-                          className="fill-indigo-500/10 dark:fill-indigo-400/10"
-                        />
-                        {/* Line */}
-                        <polyline 
-                          points={chartData.map((val, i) => `${(i / (chartData.length - 1)) * 100}%,${128 - (val * 1.28)}`).join(' ')}
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="3"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          className="text-indigo-500 dark:text-indigo-400 drop-shadow-md"
-                        />
-                        {/* Points */}
-                        {chartData.map((val, i) => (
-                          <circle 
-                            key={i}
-                            cx={`${(i / (chartData.length - 1)) * 100}%`}
-                            cy={`${128 - (val * 1.28)}`}
-                            r="4"
-                            className="fill-white dark:fill-gray-800 stroke-indigo-500 dark:stroke-indigo-400"
-                            strokeWidth="2"
-                          />
-                        ))}
-                      </svg>
-                    </div>
-                  </div>
-                )}
 
                 {/* Timeline / Cards */}
                 <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-6 sm:p-8 rounded-3xl shadow-sm">
@@ -518,9 +711,182 @@ export default function ProfileScreen({ goHome, currentUser, setCurrentUser }) {
                 </div>
               </div>
             )}
+
+            {activeTab === "preferences" && (
+              <div className="animate-fade-in">
+                <h5 className="font-bold text-2xl text-gray-800 dark:text-white mb-2">{tNode("profile.learningPreferencesTitle")}</h5>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">{tNode("profile.learningPreferencesSubtitle")}</p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
+                  <button
+                    type="button"
+                    onClick={() => setPreferencesSection("learning")}
+                    className={`p-3 rounded-2xl border text-left transition-all ${preferencesSection === "learning" ? "border-cyan-400 bg-cyan-50 dark:bg-cyan-900/20" : "border-gray-200 dark:border-gray-700 bg-white/60 dark:bg-gray-900/40"}`}
+                  >
+                    <p className="text-xs font-black uppercase tracking-[0.16em] text-cyan-700 dark:text-cyan-300">{tNode("profile.preferencesSectionLearning")}</p>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPreferencesSection("session")}
+                    className={`p-3 rounded-2xl border text-left transition-all ${preferencesSection === "session" ? "border-emerald-400 bg-emerald-50 dark:bg-emerald-900/20" : "border-gray-200 dark:border-gray-700 bg-white/60 dark:bg-gray-900/40"}`}
+                  >
+                    <p className="text-xs font-black uppercase tracking-[0.16em] text-emerald-700 dark:text-emerald-300">{tNode("profile.preferencesSectionSession")}</p>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPreferencesSection("data")}
+                    className={`p-3 rounded-2xl border text-left transition-all ${preferencesSection === "data" ? "border-rose-400 bg-rose-50 dark:bg-rose-900/20" : "border-gray-200 dark:border-gray-700 bg-white/60 dark:bg-gray-900/40"}`}
+                  >
+                    <p className="text-xs font-black uppercase tracking-[0.16em] text-rose-700 dark:text-rose-300">{tNode("profile.preferencesSectionData")}</p>
+                  </button>
+                </div>
+
+                {preferencesSection === "learning" && (
+                  <section className="rounded-2xl border border-cyan-200/70 dark:border-cyan-800/60 bg-cyan-50/40 dark:bg-cyan-900/15 p-4">
+                    <p className="text-xs font-black uppercase tracking-[0.16em] text-cyan-700 dark:text-cyan-300 mb-3">
+                      {tNode("profile.preferencesSectionLearning")}
+                    </p>
+                    <label className="text-xs font-bold uppercase tracking-[0.14em] text-gray-500 dark:text-gray-400">
+                      {tNode("profile.learningObjectiveLabel")}
+                    </label>
+                    <div className="mt-2 grid grid-cols-1 gap-2">
+                      {strategyOptions.map((option) => {
+                        const isActive = learningStrategy === option.id;
+                        return (
+                          <button
+                            key={option.id}
+                            type="button"
+                            onClick={() => setLearningStrategy(option.id)}
+                            className={`text-left p-3 rounded-xl border transition-all ${
+                              isActive
+                                ? "border-cyan-400 bg-cyan-50 dark:bg-cyan-900/20"
+                                : "border-gray-200 dark:border-gray-700 bg-white/60 dark:bg-gray-900/40"
+                            }`}
+                          >
+                            <div className="font-bold text-gray-900 dark:text-gray-100">{option.label}</div>
+                            <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">{option.desc}</div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </section>
+                )}
+
+                {preferencesSection === "session" && (
+                  <section className="rounded-2xl border border-emerald-200/70 dark:border-emerald-800/60 bg-emerald-50/40 dark:bg-emerald-900/15 p-4">
+                    <p className="text-xs font-black uppercase tracking-[0.16em] text-emerald-700 dark:text-emerald-300 mb-3">
+                      {tNode("profile.preferencesSectionSession")}
+                    </p>
+                    <label className="text-xs font-bold uppercase tracking-[0.14em] text-gray-500 dark:text-gray-400">
+                      {tNode("profile.defaultIntensityLabel")}
+                    </label>
+                    <select
+                      value={sessionIntensity}
+                      onChange={(e) => setSessionIntensity(e.target.value)}
+                      className="mt-1 w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white/70 dark:bg-gray-900/70"
+                    >
+                      <option value="focused">{t("setup.intensityFocused")}</option>
+                      <option value="standard">{t("setup.intensityStandard")}</option>
+                      <option value="intensive">{t("setup.intensityIntensive")}</option>
+                    </select>
+                    <label className="text-xs font-bold uppercase tracking-[0.14em] text-gray-500 dark:text-gray-400 mt-4 block">
+                      {tNode("profile.aivisSpeakerLabel")}
+                    </label>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 mb-2">{tNode("profile.aivisSpeakerDesc")}</p>
+                    {aivisSpeakers.length > 0 ? (
+                      <div className="flex flex-col md:flex-row md:items-center gap-2">
+                        <select
+                          value={aivisSpeakerId}
+                          onChange={(e) => setAivisSpeakerId(parseInt(e.target.value, 10) || 888753760)}
+                          className="w-full md:w-80 px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white/70 dark:bg-gray-900/70"
+                        >
+                          {aivisSpeakers.map((speaker) => (
+                            <option key={speaker.id} value={speaker.id}>{speaker.name}</option>
+                          ))}
+                        </select>
+                        <button
+                          type="button"
+                          onClick={previewSpeakerVoice}
+                          disabled={isPreviewPlaying}
+                          className="px-4 py-2 rounded-xl border border-cyan-300 dark:border-cyan-700 text-cyan-700 dark:text-cyan-300 font-bold bg-cyan-50/70 dark:bg-cyan-900/20 disabled:opacity-60"
+                        >
+                          {isPreviewPlaying ? tNode("setup.previewLoading") : tNode("setup.previewVoice")}
+                        </button>
+                      </div>
+                    ) : (
+                      <input
+                        type="number"
+                        min="1"
+                        value={aivisSpeakerId}
+                        onChange={(e) => setAivisSpeakerId(parseInt(e.target.value, 10) || 888753760)}
+                        className="w-full md:w-64 px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white/70 dark:bg-gray-900/70"
+                      />
+                    )}
+                  </section>
+                )}
+
+                <div className="mt-6">
+                  <button onClick={saveLearningPreferences} className="px-6 py-2.5 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold rounded-xl shadow-lg hover:scale-105 active:scale-95 transition-all duration-300">
+                    {tNode("profile.savePreferences")}
+                  </button>
+                </div>
+                {preferencesSection === "data" && (
+                <section className="mt-6 rounded-2xl border border-rose-200/70 dark:border-rose-800/60 bg-rose-50/40 dark:bg-rose-900/15 p-4">
+                  <p className="text-xs font-black uppercase tracking-[0.16em] text-rose-700 dark:text-rose-300 mb-3">
+                    {tNode("profile.preferencesSectionData")}
+                  </p>
+                  <h6 className="font-bold text-rose-600 dark:text-rose-400 mb-2">{tNode("profile.clearDataTitle")}</h6>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">{tNode("profile.clearDataDesc")}</p>
+                  <button
+                    type="button"
+                    onClick={() => setShowClearDataModal(true)}
+                    disabled={isClearingData}
+                    className="px-5 py-2.5 bg-rose-600 hover:bg-rose-700 disabled:opacity-60 text-white font-bold rounded-xl transition-colors"
+                  >
+                    {isClearingData ? tNode("profile.clearingData") : tNode("profile.clearDataButton")}
+                  </button>
+                </section>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>
+
+      {showClearDataModal && (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-950/55 backdrop-blur-md" onClick={() => !isClearingData && setShowClearDataModal(false)}></div>
+          <div className="relative w-full max-w-md overflow-hidden rounded-[2rem] border border-white/50 dark:border-white/10 bg-white/70 dark:bg-slate-900/65 backdrop-blur-2xl p-6 shadow-2xl shadow-cyan-500/10">
+            <div className="absolute -top-16 -right-14 h-44 w-44 rounded-full bg-gradient-to-br from-cyan-400/25 to-sky-500/10 blur-2xl pointer-events-none"></div>
+            <div className="absolute -bottom-20 -left-16 h-48 w-48 rounded-full bg-gradient-to-br from-emerald-400/20 to-indigo-500/10 blur-3xl pointer-events-none"></div>
+            <div className="relative">
+            <h3 className="text-xl font-black text-slate-900 dark:text-slate-100 mb-2">
+              {tNode("profile.clearDataTitle")}
+            </h3>
+            <p className="text-sm text-slate-600 dark:text-slate-300 mb-6 leading-relaxed">
+              {tNode("profile.clearDataConfirm")}
+            </p>
+            <div className="flex items-center justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setShowClearDataModal(false)}
+                disabled={isClearingData}
+                className="px-4 py-2 rounded-xl border border-slate-300/80 dark:border-slate-700 bg-white/70 dark:bg-slate-800/70 text-slate-700 dark:text-slate-200 font-semibold hover:bg-white dark:hover:bg-slate-800 transition-colors disabled:opacity-60"
+              >
+                {tNode("profile.cancel")}
+              </button>
+              <button
+                type="button"
+                onClick={clearUserData}
+                disabled={isClearingData}
+                className="px-4 py-2 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white font-bold shadow-lg shadow-rose-500/20 transition-all disabled:opacity-60"
+              >
+                {isClearingData ? tNode("profile.clearingData") : tNode("profile.confirmDelete")}
+              </button>
+            </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <button
         onClick={goHome}

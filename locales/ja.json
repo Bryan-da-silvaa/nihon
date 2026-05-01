@@ -40,7 +40,23 @@
 		"unselectLine": "行の選択を解除",
 		"clear": "すべて解除",
 		"selectedCount": "選択中の仮名 : {count}",
-		"start": "セッション開始"
+		"start": "セッション開始",
+		"intensitySection": "セッション強度",
+		"intensityFocused": "集中 (12)",
+		"intensityFocusedDesc": "短時間で高集中のセッションです。",
+		"intensityStandard": "標準 (24)",
+		"intensityStandardDesc": "安定して伸ばせるバランス型です。",
+		"intensityIntensive": "強化 (40)",
+		"intensityIntensiveDesc": "出題量を増やして定着を加速します。",
+		"objectiveManagedByProfile": "学習目的はプロフィール設定で管理されます",
+		"audioSection": "音声と発話",
+		"enablePronunciationAudio": "仮名の発音音声を有効化",
+		"enableVoiceValidation": "音声でカードを判定",
+		"voiceValidationDesc": "カードは音声で回答して判定します（マイク必須）。",
+		"aivisSpeakerLabel": "Aivis スピーカー",
+		"aivisSpeakerDesc": "発音再生に使うローカル AivisSpeech のスピーカーID。",
+		"previewVoice": "音声を試聴",
+		"previewLoading": "再生中..."
 	},
 	"game": {
 		"backToHome": "ホームに戻る",
@@ -64,7 +80,14 @@
 		"reviewDue": "復習",
 		"reviewWeak": "苦手",
 		"reviewLearning": "学習中",
-		"reviewMastered": "習得済み"
+		"reviewMastered": "習得済み",
+		"playPronunciation": "発音を聞く",
+		"speakToAnswer": "音声で回答",
+		"listening": "聞き取り中...",
+		"voiceNotSupported": "このブラウザは音声認識に対応していません。",
+		"voiceError": "マイク/音声認識エラー。",
+		"voiceHeard": "認識: {value}",
+		"loadingAudio": "音声読み込み中..."
 	},
 	"navbar": {
 		"brand": "Nihon",
@@ -76,7 +99,8 @@
 		"langSwitchJa": "日本語",
 		"langSwitchFr": "フランス語",
 		"admin": "管理",
-		"library": "ライブラリ"
+		"library": "ライブラリ",
+		"learningPreferences": "学習設定"
 	},
 	"auth": {
 		"welcome": "Nihonへようこそ",
@@ -141,7 +165,31 @@
 		"masteryLegendMastered": "習得済み (>80%)",
 		"masteryLegendLearning": "学習中 (50-80%)",
 		"masteryLegendStruggling": "復習が必要 (<50%)",
-		"masteryLegendUnseen": "未テスト"
+		"masteryLegendUnseen": "未テスト",
+		"learningObjectiveLabel": "学習目標",
+		"defaultIntensityLabel": "デフォルト強度",
+		"usernamePlaceholder": "ユーザー名",
+		"kanjiPlaceholder": "漢字名（任意）",
+		"readingPlaceholder": "ふりがな（任意）",
+		"tabPreferences": "⚙️ 設定",
+		"learningPreferencesTitle": "学習プリファレンス",
+		"learningPreferencesSubtitle": "学習目標とセッション既定強度を設定します。",
+		"savePreferences": "設定を保存",
+		"preferencesSaved": "設定を保存しました。",
+		"clearDataTitle": "学習データをリセット",
+		"clearDataDesc": "統計、セッション履歴、SRS進捗、個人ライブラリ項目を削除します。アカウントは保持されます。",
+		"clearDataButton": "データを削除",
+		"clearingData": "削除中...",
+		"clearDataSuccess": "ユーザーデータを削除しました。",
+		"clearDataError": "データを削除できませんでした。",
+		"clearDataConfirm": "学習データをすべて削除しますか？この操作は元に戻せません。",
+		"cancel": "キャンセル",
+		"confirmDelete": "削除を確定",
+		"preferencesSectionLearning": "学習方針",
+		"preferencesSectionSession": "セッション",
+		"preferencesSectionData": "ユーザーデータ",
+		"aivisSpeakerLabel": "Aivis スピーカー",
+		"aivisSpeakerDesc": "仮名読み上げに使うローカル AivisSpeech スピーカーID。"
 	},
 	"score": {
 		"title": "セッション結果",

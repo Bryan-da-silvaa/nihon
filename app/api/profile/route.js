@@ -70,6 +70,9 @@ export async function GET(request) {
 
     return NextResponse.json({
       ...userWithoutPassword,
+      learning_strategy: userWithoutPassword.learning_strategy || "balanced",
+      session_intensity: userWithoutPassword.session_intensity || "standard",
+      aivis_speaker_id: userWithoutPassword.aivis_speaker_id || 888753760,
       total_time: totalTime,
       recent_games: recentGames,
       strongest_kanas: strongestKanas,
@@ -86,9 +89,10 @@ export async function GET(request) {
 
 export async function PUT(request) {
   try {
-    const { userId, username, avatar, kanji, reading } = await request.json();
+    const { userId, username, avatar, kanji, reading, learningStrategy, sessionIntensity, aivisSpeakerId } = await request.json();
 
     if (!userId) return NextResponse.json({ error: "api.unauthorized" }, { status: 401 });
+    await initDb();
 
     // On vérifie que le nouveau pseudo n'est pas pris
     const existing = await query('SELECT id FROM users WHERE username = ? AND id != ?', [username, userId]);
@@ -96,10 +100,31 @@ export async function PUT(request) {
       return NextResponse.json({ error: "api.usernameTaken" }, { status: 400 });
     }
 
-    // Mettre à jour username, avatar, kanji et reading
-    await query('UPDATE users SET username = ?, avatar = ?, kanji = ?, reading = ? WHERE id = ?', [username, avatar, kanji, reading, userId]);
+    const safeLearningStrategy = ["balanced", "review", "foundation", "weak"].includes(learningStrategy)
+      ? learningStrategy
+      : "balanced";
+    const safeSessionIntensity = ["focused", "standard", "intensive"].includes(sessionIntensity)
+      ? sessionIntensity
+      : "standard";
+    const parsedSpeakerId = Number.parseInt(String(aivisSpeakerId ?? "888753760"), 10);
+    const safeAivisSpeakerId = Number.isFinite(parsedSpeakerId) && parsedSpeakerId > 0 ? parsedSpeakerId : 888753760;
 
-    return NextResponse.json({ success: true, username, avatar, kanji, reading });
+    // Mettre à jour username, avatar, kanji, reading et préférences pédagogiques
+    await query(
+      "UPDATE users SET username = ?, avatar = ?, kanji = ?, reading = ?, learning_strategy = ?, session_intensity = ?, aivis_speaker_id = ? WHERE id = ?",
+      [username, avatar, kanji, reading, safeLearningStrategy, safeSessionIntensity, safeAivisSpeakerId, userId]
+    );
+
+    return NextResponse.json({
+      success: true,
+      username,
+      avatar,
+      kanji,
+      reading,
+      learning_strategy: safeLearningStrategy,
+      session_intensity: safeSessionIntensity,
+      aivis_speaker_id: safeAivisSpeakerId,
+    });
   } catch (error) {
     return NextResponse.json({ error: "api.updateError" }, { status: 500 });
   }
