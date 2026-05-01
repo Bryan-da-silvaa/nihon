@@ -25,7 +25,8 @@
 		"logout": "Deconnexion",
 		"themeChangeTitle": "Changer de theme",
 		"langSwitchJa": "Japonais (日本語)",
-		"langSwitchFr": "Francais"
+		"langSwitchFr": "Francais",
+		"admin": "Administration"
 	},
 	"auth": {
 		"welcome": "Bienvenue sur Nihon",
@@ -43,7 +44,10 @@
 		"createAccount": "Creer un compte",
 		"errorImageSize": "L'image est trop volumineuse (max 2 Mo)",
 		"errorGeneric": "Une erreur est survenue",
-		"errorNetwork": "Erreur reseau"
+		"errorNetwork": "Erreur reseau",
+		"welcomeBack": "Heureux de vous revoir",
+		"joinAdventure": "Rejoignez l'aventure",
+		"changeAvatar": "Changer d'avatar"
 	},
 	"profile": {
 		"title": "Mon Profil",
@@ -61,12 +65,18 @@
 		"bestHiragana": "Record Hiragana",
 		"bestKatakana": "Record Katakana",
 		"errorSave": "Erreur lors de la sauvegarde",
-		"errorImageSize": "L'image est trop volumineuse (max 2 Mo)"
+		"errorImageSize": "L'image est trop volumineuse (max 2 Mo)",
+		"memberSubtitle": "Membre de Nihon"
 	},
 	"score": {
 		"title": "Resultat de la session",
 		"resultText": "Vous avez obtenu {score} sur {currentListLength} !",
-		"backToHome": "Retour a l'accueil"
+		"backToHome": "Retour a l'accueil",
+		"messagePerfect": "Parfait ! Tu maîtrises ces Kana à la perfection !",
+		"messageGreat": "Très bien ! Continue comme ça !",
+		"messageGood": "Bien ! Encore un peu de pratique.",
+		"messageNotBad": "Pas mal, mais tu peux faire mieux !",
+		"messagePractice": "Il faut encore s'entraîner !"
 	},
 	"errors": {
 		"kanaLimit": "Erreur : La limite est de 500 Kana maximum.",
@@ -84,5 +94,94 @@
 		"dbConnection": "Erreur de connexion a la base de donnees",
 		"updateError": "Erreur lors de la mise a jour",
 		"scoreSaveError": "Erreur d'enregistrement des scores"
+	},
+	"admin": {
+		"title": "Espace d'Administration",
+		"subtitle": "Gérez vos outils et analysez vos données en toute simplicité.",
+		"loggedInAs": "Connecté en tant que {username}",
+		"tabs": {
+			"tools": "Outils & IA",
+			"users": "Utilisateurs",
+			"settings": "Paramètres"
+		},
+		"tools": {
+			"beta": "Bêta",
+			"whisperTitle": "Sous-titrage Whisper",
+			"whisperDesc": "Convertissez n'importe quel fichier audio japonais en sous-titres précis en quelques secondes grâce au modèle OpenAI Whisper.",
+			"openTool": "Ouvrir l'outil",
+			"decksTitle": "Gestion des Decks",
+			"decksDesc": "Créez et modifiez des listes de vocabulaire personnalisées pour vos sessions d'apprentissage.",
+			"configure": "Configurer",
+			"usersTitle": "Gestion des Utilisateurs",
+			"usersDesc": "La liste des utilisateurs inscrits et leurs statistiques apparaîtront ici prochainement."
+		},
+		"settings": {
+			"title": "Paramètres du Serveur",
+			"description": "Configurez les chemins et les exécutables locaux pour l'IA.",
+			"iaConfig": "Configuration de l'IA (Whisper)",
+			"cmdLabel": "Commande d'exécution",
+			"cmdDesc": "Exemple: \"whisper\", \"./main\", \"python main.py\"",
+			"pathLabel": "Dossier d'exécution (Optionnel)",
+			"pathDesc": "Le chemin absolu vers le dossier (ex: \"/Users/tabitha/whisper.cpp\")",
+			"modelLabel": "Modèle Whisper",
+			"modelDesc": "Nom du modèle (ex: \"base\", \"large-v3\") ou chemin vers le fichier .bin.",
+			"modelPlaceholder": "Ex: large-v3-turbo",
+			"saveButton": "Enregistrer",
+			"saving": "Enregistrement...",
+			"dbTitle": "Gestion de la Base de Données",
+			"dbDesc": "Sauvegardez ou restaurez l'intégralité de la base de données (progression, scores, etc.).",
+			"exportBtn": "Exporter la base (Backup)",
+			"importBtn": "Importer un Backup",
+			"importing": "Importation...",
+			"importWarning": "Attention : L'importation va écraser la base de données actuelle. Voulez-vous continuer ?",
+			"importSuccess": "Base de données importée avec succès !",
+			"importError": "Erreur lors de l'importation.",
+			"saveSuccess": "Paramètres enregistrés avec succès !",
+			"saveError": "Erreur lors de l'enregistrement.",
+			"furiganaTitle": "Génération des Furigana",
+			"furiganaDesc": "Analyse automatiquement les textes japonais (ja.json) et régénère le dictionnaire de lectures (furigana.json) via Kuroshiro.",
+			"furiganaBtn": "Générer les Furigana",
+			"furiganaGenerating": "Génération en cours...",
+			"furiganaSuccess": "{count} lectures générées avec succès !",
+			"furiganaError": "Erreur lors de la génération des furigana."
+		}
+	},
+	"whisper": {
+		"title": "Nihon Whisper Pipeline",
+		"subtitle": "Collez un lien YouTube pour transcrire automatiquement l'audio en texte japonais (Kanji/Kana) et en Romaji espacé.",
+		"youtubeLabel": "Lien de la vidéo YouTube",
+		"youtubePlaceholder": "https://www.youtube.com/watch?v=...",
+		"or": "OU",
+		"uploadLabel": "Importer un fichier local (MP3, MP4, WAV...)",
+		"uploading": "Upload en cours...",
+		"fileReady": "Fichier prêt : {filename}",
+		"langLabel": "Langue de la vidéo",
+		"langAuto": "Détection Auto",
+		"langJa": "Japonais (Forcé)",
+		"langFr": "Français",
+		"langEn": "Anglais",
+		"startButton": "Transcrire",
+		"loadingBtn": "Démarrage...",
+		"init": "Initialisation...",
+		"processing": "Transcription en cours...",
+		"resultTitle": "Transcription (Brut)",
+		"romajiTitle": "Romaji (Généré par Kuroshiro)",
+		"filesTitle": "Fichiers Générés",
+		"audioFile": "Audio",
+		"subsFile": "Sous-titres originaux",
+		"romajiFile": "Sous-titres Romaji",
+		"uploadError": "Erreur réseau lors de l'upload.",
+		"processError": "Erreur lors du traitement.",
+		"connectionLost": "La connexion au serveur a été perdue.",
+		"backToAdmin": "Retour à l'Admin",
+		"stepDone": "✅ Terminé",
+		"stepProcessing": "⚙️ Traitement en cours...",
+		"step1": "Téléchargement de la vidéo",
+		"step2": "Préparation de l'audio",
+		"step3": "Transcription par l'IA",
+		"doneDefaultTitle": "Transcription terminée",
+		"doneSubtitle": "Texte généré par l'IA Whisper",
+		"emptyTranscription": "Transcription vide ou non trouvée.",
+		"restartBtn": "Recommencer avec une autre vidéo"
 	}
 }

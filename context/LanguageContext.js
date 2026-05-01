@@ -1,10 +1,10 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import fr from '../locales/fr.json';
 import ja from '../locales/ja.json';
 import Ruby from '../components/Ruby';
-import furiganaMap from '../data/furigana.json';
+import defaultFuriganaMap from '../data/furigana.json';
 
 const LanguageContext = createContext();
 
@@ -15,6 +15,7 @@ const translations = {
 
 export function LanguageProvider({ children }) {
   const [language, setLanguage] = useState("fr");
+  const [furiganaMap, setFuriganaMap] = useState(defaultFuriganaMap);
 
   useEffect(() => {
     const savedLang = localStorage.getItem("app_lang");
@@ -23,6 +24,22 @@ export function LanguageProvider({ children }) {
       setLanguage(savedLang);
     }
   }, []);
+
+  // Load fresh furigana data from API
+  const refreshFurigana = useCallback(async () => {
+    try {
+      const res = await fetch('/api/furigana');
+      if (res.ok) {
+        const data = await res.json();
+        setFuriganaMap(data);
+      }
+    } catch (_) {}
+  }, []);
+
+  // Fetch fresh furigana on mount
+  useEffect(() => {
+    refreshFurigana();
+  }, [refreshFurigana]);
 
   const changeLanguage = (newLang) => {
     if (translations[newLang]) {
@@ -101,7 +118,7 @@ export function LanguageProvider({ children }) {
   };
 
   return (
-    <LanguageContext.Provider value={{ language, changeLanguage, t, tWithVars, tNode }}>
+    <LanguageContext.Provider value={{ language, changeLanguage, t, tWithVars, tNode, refreshFurigana }}>
       {children}
     </LanguageContext.Provider>
   );

@@ -118,22 +118,36 @@ export default function useKanaEngine() {
     setScreen("profile");
   };
 
+  const goAdmin = () => {
+    setScreen("admin");
+  };
+
+  const goWhisper = () => {
+    setScreen("admin_whisper");
+  };
+
   const logout = () => {
     handleSetCurrentUser(null);
     setScreen("home");
   };
 
-  let maxWidthClass = "max-w-[600px]";
-  if (currentList.length > 40) maxWidthClass = "max-w-[1800px]";
-  else if (currentList.length > 20) maxWidthClass = "max-w-[1200px]";
-  else if (currentList.length > 10) maxWidthClass = "max-w-[900px]";
+  let maxWidthClass = "max-w-3xl"; // Home and Auth screens
+  if (screen === "game") {
+    maxWidthClass = "max-w-[98%]";
+  } else if (screen === "profile") {
+    maxWidthClass = "max-w-4xl";
+  } else if (screen === "admin" || screen === "admin_whisper") {
+    maxWidthClass = "max-w-6xl";
+  } else if (screen === "score") {
+    maxWidthClass = "max-w-2xl";
+  }
 
   return {
     currentUser, setCurrentUser: handleSetCurrentUser, isAuthLoaded, logout,
     screen, kanaCount, setKanaCount, useTimer, setUseTimer, 
     timeLimit, setTimeLimit, timeLeft, errorMsg, 
     currentList, score, answers, setAnswers, status, inputsRef,
-    startGame, checkAnswer, goHome, goProfile, maxWidthClass
+    startGame, checkAnswer, goHome, goProfile, goAdmin, goWhisper, maxWidthClass
   };
 }
 

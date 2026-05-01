@@ -2,7 +2,7 @@ import { useState } from "react";
 import useDarkMode from "../hooks/useDarkMode";
 import { useLanguage } from "../context/LanguageContext";
 
-export default function Navbar({ goProfile, goHome, screen, currentUser, logout }) {
+export default function Navbar({ goProfile, goAdmin, goHome, screen, currentUser, logout }) {
   const [isDarkMode, setIsDarkMode] = useDarkMode();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { t, tNode, changeLanguage, language } = useLanguage();
@@ -42,6 +42,17 @@ export default function Navbar({ goProfile, goHome, screen, currentUser, logout 
                     className="w-full text-left px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 font-bold transition-colors border-b border-gray-100 dark:border-gray-700"
                   >
                     {t('navbar.myProfile')}
+                  </button>
+                )}
+                {screen !== 'admin' && (
+                  <button
+                    onClick={() => {
+                      if (goAdmin) goAdmin();
+                      setIsMenuOpen(false);
+                    }}
+                    className="w-full text-left px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-700 text-indigo-600 dark:text-indigo-400 font-bold transition-colors border-b border-gray-100 dark:border-gray-700 flex items-center gap-2"
+                  >
+                    <span>🛠️</span> {tNode('navbar.admin')}
                   </button>
                 )}
                 <button

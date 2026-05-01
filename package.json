@@ -6,10 +6,13 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "generate:furigana": "node scripts/generate-furigana.js"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
+    "kuroshiro": "^1.2.0",
+    "kuroshiro-analyzer-kuromoji": "^1.1.0",
     "mysql2": "^3.22.3",
     "next": "16.2.4",
     "react": "19.2.4",

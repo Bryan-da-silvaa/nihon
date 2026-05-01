@@ -6,6 +6,8 @@ import GameScreen from "../components/GameScreen";
 import ScoreScreen from "../components/ScoreScreen";
 import ProfileScreen from "../components/ProfileScreen";
 import AuthScreen from "../components/AuthScreen";
+import AdminScreen from "../components/AdminScreen";
+import WhisperScreen from "../components/WhisperScreen";
 import useKanaEngine from "../hooks/useKanaEngine";
 import { useLanguage } from "../context/LanguageContext";
 
@@ -16,20 +18,21 @@ export default function Home() {
     screen, kanaCount, setKanaCount, useTimer, setUseTimer, 
     timeLimit, setTimeLimit, timeLeft, errorMsg, 
     currentList, score, answers, setAnswers, status, inputsRef,
-    startGame, checkAnswer, goHome, goProfile, maxWidthClass
+    startGame, checkAnswer, goHome, goProfile, goAdmin, goWhisper, maxWidthClass
   } = useKanaEngine();
 
   return (
-    <div className="min-h-screen bg-gray-100 dark:bg-gray-900 transition-colors duration-300 w-full pt-4 pb-8 text-black dark:text-white">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-blue-50 dark:from-gray-900 dark:via-indigo-950 dark:to-gray-900 transition-colors duration-500 w-full pt-4 pb-8 text-black dark:text-white relative overflow-hidden">
       <Navbar 
         goProfile={goProfile} 
+        goAdmin={goAdmin}
         screen={screen} 
         goHome={goHome} 
         currentUser={currentUser} 
         logout={logout} 
       />
 
-      <div className={`bg-white dark:bg-gray-800 p-8 rounded-xl shadow-md w-[98%] text-center ${maxWidthClass} mx-auto transition-all duration-300`}>
+      <div className={`backdrop-blur-xl bg-white/70 dark:bg-gray-800/60 border border-white/50 dark:border-gray-700/50 p-8 rounded-3xl shadow-2xl w-[98%] text-center ${maxWidthClass} mx-auto transition-all duration-500 relative z-10`}>
         {!isAuthLoaded ? (
            <div className="text-xl py-10">{t("common.loading")}</div>
         ) : !currentUser ? (
@@ -73,6 +76,14 @@ export default function Home() {
 
         {screen === "profile" && (
           <ProfileScreen goHome={goHome} currentUser={currentUser} setCurrentUser={setCurrentUser} />
+        )}
+
+        {screen === "admin" && (
+          <AdminScreen goHome={goHome} goWhisper={goWhisper} currentUser={currentUser} />
+        )}
+
+        {screen === "admin_whisper" && (
+          <WhisperScreen goAdmin={goAdmin} />
         )}
       </>)}
       </div>

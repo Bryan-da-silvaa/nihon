@@ -25,7 +25,8 @@
 		"logout": "ログアウト",
 		"themeChangeTitle": "テーマを変更",
 		"langSwitchJa": "日本語",
-		"langSwitchFr": "フランス語"
+		"langSwitchFr": "フランス語",
+		"admin": "管理"
 	},
 	"auth": {
 		"welcome": "Nihonへようこそ",
@@ -43,7 +44,10 @@
 		"createAccount": "アカウントを作成",
 		"errorImageSize": "画像が大きすぎます (最大 2 MB)",
 		"errorGeneric": "エラーが発生しました",
-		"errorNetwork": "ネットワークエラー"
+		"errorNetwork": "ネットワークエラー",
+		"welcomeBack": "お帰りなさい",
+		"joinAdventure": "冒険に参加する",
+		"changeAvatar": "アバターを変更"
 	},
 	"profile": {
 		"title": "マイプロフィール",
@@ -56,17 +60,23 @@
 		"save": "保存",
 		"edit": "編集",
 		"statsTitle": "総合統計",
-		"gamesPlayed": "プレイした回数",
+		"gamesPlayed": "プレイ回数",
 		"correctAnswers": "正解数",
-		"bestHiragana": "ひらがな最高スコア",
-		"bestKatakana": "カタカナ最高スコア",
+		"bestHiragana": "ひらがな記録",
+		"bestKatakana": "カタカナ記録",
 		"errorSave": "保存中にエラーが発生しました",
-		"errorImageSize": "画像が大きすぎます (最大 2 MB)"
+		"errorImageSize": "画像が大きすぎます (最大 2 MB)",
+		"memberSubtitle": "Nihonのメンバー"
 	},
 	"score": {
 		"title": "セッション結果",
 		"resultText": "{score} / {currentListLength} 点獲得しました！",
-		"backToHome": "ホームに戻る"
+		"backToHome": "ホームに戻る",
+		"messagePerfect": "完璧！この仮名を完全にマスターしました！",
+		"messageGreat": "素晴らしい！その調子です！",
+		"messageGood": "いいね！もう少し練習しましょう。",
+		"messageNotBad": "悪くないですが、もっとできますよ！",
+		"messagePractice": "もっと練習が必要です！"
 	},
 	"errors": {
 		"kanaLimit": "エラー：最大500個までです。",
@@ -84,5 +94,94 @@
 		"dbConnection": "データベース接続エラー",
 		"updateError": "更新中にエラーが発生しました",
 		"scoreSaveError": "スコア保存エラー"
+	},
+	"admin": {
+		"title": "管理スペース",
+		"subtitle": "ツールを簡単に管理し、データを分析します。",
+		"loggedInAs": "{username} としてログイン中",
+		"tabs": {
+			"tools": "ツールとAI",
+			"users": "ユーザー",
+			"settings": "設定"
+		},
+		"tools": {
+			"beta": "ベータ版",
+			"whisperTitle": "Whisper 字幕",
+			"whisperDesc": "OpenAI Whisperモデルを使用して、日本の音声ファイルを数秒で正確な字幕に変換します。",
+			"openTool": "ツールを開く",
+			"decksTitle": "デッキ管理",
+			"decksDesc": "学習セッション用のカスタム語彙リストを作成および編集します。",
+			"configure": "設定する",
+			"usersTitle": "ユーザー管理",
+			"usersDesc": "登録ユーザーとその統計のリストがまもなくここに表示されます。"
+		},
+		"settings": {
+			"title": "サーバー設定",
+			"description": "AIのローカルパスと実行コマンドを設定します。",
+			"iaConfig": "AI設定 (Whisper)",
+			"cmdLabel": "実行コマンド",
+			"cmdDesc": "例: \"whisper\", \"./main\", \"python main.py\"",
+			"pathLabel": "実行フォルダ (オプション)",
+			"pathDesc": "フォルダへの絶対パス",
+			"modelLabel": "Whisperモデル",
+			"modelDesc": "モデル名または .bin ファイルへのパス。",
+			"modelPlaceholder": "例: large-v3-turbo",
+			"saveButton": "保存",
+			"saving": "保存中...",
+			"dbTitle": "データベース管理",
+			"dbDesc": "データベース（進行状況、スコアなど）全体をバックアップまたは復元します。",
+			"exportBtn": "データベースをエクスポート (バックアップ)",
+			"importBtn": "バックアップをインポート",
+			"importing": "インポート中...",
+			"importWarning": "警告：インポートすると現在のデータベースが上書きされます。続行しますか？",
+			"importSuccess": "データベースが正常にインポートされました！",
+			"importError": "インポート中にエラーが発生しました。",
+			"saveSuccess": "設定が正常に保存されました！",
+			"saveError": "保存中にエラーが発生しました。",
+			"furiganaTitle": "振り仮名の生成",
+			"furiganaDesc": "日本語テキスト (ja.json) を自動分析し、Kuroshiroで読み込み辞書 (furigana.json) を再生成します。",
+			"furiganaBtn": "振り仮名を生成",
+			"furiganaGenerating": "生成中...",
+			"furiganaSuccess": "{count} 件の読みが正常に生成されました！",
+			"furiganaError": "振り仮名の生成中にエラーが発生しました。"
+		}
+	},
+	"whisper": {
+		"title": "Nihon Whisper パイプライン",
+		"subtitle": "YouTubeのリンクを貼り付けて、音声を日本語テキスト（漢字/仮名）とスペース区切りのローマ字に自動文字起こしします。",
+		"youtubeLabel": "YouTube動画リンク",
+		"youtubePlaceholder": "https://www.youtube.com/watch?v=...",
+		"or": "または",
+		"uploadLabel": "ローカルファイルをインポート (MP3, MP4, WAV...)",
+		"uploading": "アップロード中...",
+		"fileReady": "準備完了 : {filename}",
+		"langLabel": "動画の言語",
+		"langAuto": "自動検出",
+		"langJa": "日本語 (強制)",
+		"langFr": "フランス語",
+		"langEn": "英語",
+		"startButton": "文字起こし開始",
+		"loadingBtn": "開始中...",
+		"init": "初期化中...",
+		"processing": "文字起こし中...",
+		"resultTitle": "文字起こし (オリジナル)",
+		"romajiTitle": "ローマ字 (Kuroshiro生成)",
+		"filesTitle": "生成されたファイル",
+		"audioFile": "音声",
+		"subsFile": "オリジナル字幕",
+		"romajiFile": "ローマ字字幕",
+		"uploadError": "アップロード中のネットワークエラー。",
+		"processError": "処理中にエラーが発生しました。",
+		"connectionLost": "サーバーへの接続が失われました。",
+		"backToAdmin": "管理パネルに戻る",
+		"stepDone": "✅ 完了",
+		"stepProcessing": "⚙️ 処理中...",
+		"step1": "動画のダウンロード",
+		"step2": "音声の準備",
+		"step3": "AIによる文字起こし",
+		"doneDefaultTitle": "文字起こし完了",
+		"doneSubtitle": "Whisper AIによって生成されたテキスト",
+		"emptyTranscription": "文字起こしが空、または見つかりません。",
+		"restartBtn": "別の動画でやり直す"
 	}
 }
