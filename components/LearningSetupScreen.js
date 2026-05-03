@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { useLanguage } from "../context/LanguageContext";
 import { getKanaColumnIndex, getKanaLineGroups, getKanaRowKey } from "../lib/kana";
 
@@ -8,6 +8,8 @@ export default function LearningSetupScreen({
   selectedKana,
   toggleKana,
   toggleKanaLine,
+  toggleMultipleKanaLines,
+  selectContrastPairs,
   selectAllKana,
   clearKanaSelection,
   startGame,
@@ -23,348 +25,212 @@ export default function LearningSetupScreen({
   setEnableKanaAudio,
   requireVoiceAnswer,
   setRequireVoiceAnswer,
-  aivisSpeakerId,
-  setAivisSpeakerId,
   errorMsg,
 }) {
-  const { tNode } = useLanguage();
-  const [aivisSpeakers, setAivisSpeakers] = useState([]);
-  const [isPreviewPlaying, setIsPreviewPlaying] = useState(false);
-  const previewAudioRef = useRef(null);
-
-  useEffect(() => {
-    const loadSpeakers = async () => {
-      try {
-        const res = await fetch("/api/tts/speakers");
-        const data = await res.json();
-        if (res.ok && Array.isArray(data.speakers)) {
-          setAivisSpeakers(data.speakers);
-        }
-      } catch (error) {
-        setAivisSpeakers([]);
-      }
-    };
-    loadSpeakers();
-    return () => {
-      if (previewAudioRef.current) {
-        previewAudioRef.current.pause();
-        previewAudioRef.current = null;
-      }
-    };
-  }, []);
-
-  const previewSpeakerVoice = async () => {
-    if (isPreviewPlaying) return;
-    setIsPreviewPlaying(true);
-    try {
-      const res = await fetch("/api/tts/preview", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ speaker: aivisSpeakerId, text: "こんにちは、これは選択中の音声です。" }),
-      });
-      if (!res.ok) return;
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const audio = new Audio(url);
-      previewAudioRef.current = audio;
-      audio.onended = () => {
-        URL.revokeObjectURL(url);
-        previewAudioRef.current = null;
-      };
-      await audio.play();
-    } catch (error) {
-      // ignore
-    } finally {
-      setIsPreviewPlaying(false);
-    }
-  };
+  const { t, tNode } = useLanguage();
   const selectedSet = new Set(selectedKana);
   const kanaLineGroups = getKanaLineGroups(availableKana);
+  
   const strategyLabelMap = {
     balanced: tNode("home.focusBalanced"),
     review: tNode("home.focusReview"),
     foundation: tNode("home.focusFoundation"),
     weak: tNode("home.focusWeak"),
   };
+
   const intensityOptions = [
-    { id: "focused", label: tNode("setup.intensityFocused"), desc: tNode("setup.intensityFocusedDesc") },
-    { id: "standard", label: tNode("setup.intensityStandard"), desc: tNode("setup.intensityStandardDesc") },
-    { id: "intensive", label: tNode("setup.intensityIntensive"), desc: tNode("setup.intensityIntensiveDesc") },
+    { id: "focused", label: tNode("setup.intensityFocused"), desc: tNode("setup.intensityFocusedDesc"), color: "bg-blue-500" },
+    { id: "standard", label: tNode("setup.intensityStandard"), desc: tNode("setup.intensityStandardDesc"), color: "bg-indigo-500" },
+    { id: "intensive", label: tNode("setup.intensityIntensive"), desc: tNode("setup.intensityIntensiveDesc"), color: "bg-purple-500" },
+    { id: "marathon", label: tNode("setup.intensityMarathon"), desc: tNode("setup.intensityMarathonDesc"), color: "bg-amber-500" },
   ];
 
-  const rows = availableKana.reduce((accumulator, item) => {
-    const rowKey = getKanaRowKey(item.romaji);
-    if (!accumulator[rowKey]) {
-      accumulator[rowKey] = [];
-    }
-    accumulator[rowKey].push(item);
-    return accumulator;
-  }, {});
+  const getRows = (list) => {
+    const r = list.reduce((acc, item) => {
+      const rk = getKanaRowKey(item.romaji);
+      if (!acc[rk]) acc[rk] = [];
+      acc[rk].push(item);
+      return acc;
+    }, {});
+    Object.keys(r).forEach(rk => {
+      r[rk].sort((a, b) => getKanaColumnIndex(a.romaji) - getKanaColumnIndex(b.romaji));
+    });
+    return r;
+  };
 
-  Object.keys(rows).forEach((rowKey) => {
-    rows[rowKey].sort((left, right) => getKanaColumnIndex(left.romaji) - getKanaColumnIndex(right.romaji));
-  });
+  const getRowLabel = (rk) => (rk === "vowel" ? "A" : rk.toUpperCase());
 
-  const getRowLabel = (rowKey) => {
-    if (rowKey === "vowel") {
-      return "A";
-    }
-    return rowKey.toUpperCase();
+  const hiraganaList = availableKana.filter(k => k.kana.codePointAt(0) <= 0x309F);
+  const katakanaList = availableKana.filter(k => k.kana.codePointAt(0) > 0x309F);
+
+  const renderScriptGrid = (list, title, color) => {
+    if (list.length === 0) return null;
+    const scriptRows = getRows(list);
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-3">
+          <div className={`w-1 h-4 rounded-full ${color}`}></div>
+          <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-500">{title}</h4>
+        </div>
+        <div className="space-y-4">
+          {Object.keys(scriptRows).sort((a,b) => (scriptRows[a][0]?.rowRank ?? 999) - (scriptRows[b][0]?.rowRank ?? 999)).map(rk => (
+            <div key={rk} className="flex items-center gap-4">
+              <button
+                onClick={() => toggleKanaLine(scriptRows[rk].map(i => i.kana))}
+                className={`w-10 h-10 flex items-center justify-center rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shrink-0 border ${scriptRows[rk].every(i => selectedSet.has(i.kana)) ? "bg-indigo-600 border-indigo-600 text-white" : "bg-slate-50 dark:bg-slate-800 border-slate-200/50 dark:border-slate-800/50 text-slate-400 hover:border-indigo-400"}`}
+              >
+                {getRowLabel(rk)}
+              </button>
+              <div className="flex-1 grid grid-cols-5 gap-2">
+                {scriptRows[rk].map(item => (
+                  <button
+                    key={item.kana}
+                    onClick={() => toggleKana(item.kana)}
+                    className={`h-14 rounded-2xl flex flex-col items-center justify-center transition-all font-black text-xl border-2 ${selectedSet.has(item.kana) ? "bg-indigo-50 border-indigo-500 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400" : "bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 text-slate-300 dark:text-slate-700 hover:border-indigo-200"}`}
+                  >
+                    <span>{item.kana}</span>
+                    <span className="text-[10px] opacity-40 uppercase tracking-tighter">{item.romaji}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
   };
 
   return (
-    <div className="flex flex-col w-full py-6 text-left">
-      <div className="flex items-center justify-between gap-4 mb-6">
+    <div className="flex flex-col w-full animate-fade-in text-left pb-20">
+      {/* Header Section */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-6">
         <div>
-          <h2 className="text-3xl md:text-4xl font-black text-slate-800 dark:text-slate-100 mb-2">
-            {tNode("setup.title")}
+          <div className="flex items-center gap-3 mb-2">
+            <span className="px-3 py-1 rounded-lg bg-indigo-100 dark:bg-indigo-900/40 text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest border border-indigo-200/50 dark:border-indigo-800/50">
+              Configuration de Session
+            </span>
+          </div>
+          <h2 className="text-4xl md:text-5xl font-black text-slate-800 dark:text-white tracking-tight">
+            Prêt pour l'entraînement ?
           </h2>
-          <p className="text-slate-600 dark:text-slate-300">
-            {tNode("setup.subtitle").replace("{mode}", tNode(`home.${mode}`))}
+          <p className="text-slate-500 dark:text-slate-400 font-medium mt-1">
+            Personnalisez votre session de {tNode(`home.${mode}`)} pour une efficacité maximale.
           </p>
         </div>
         <button
-          type="button"
           onClick={goHome}
-          className="px-4 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white/70 dark:bg-slate-900/40 font-semibold"
+          className="px-6 py-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 font-black text-sm text-slate-500 hover:text-rose-500 hover:border-rose-200 transition-all shadow-sm"
         >
-          {tNode("setup.back")}
+          ⬅ Annuler
         </button>
       </div>
 
-      <div className="rounded-3xl border border-slate-200/80 dark:border-slate-700/80 bg-white/70 dark:bg-slate-900/40 p-6 shadow-sm mb-6">
-        <h3 className="text-sm font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400 mb-4">
-          {tNode("home.sectionFocus")}
-        </h3>
-        <div className="rounded-2xl border border-cyan-200/70 dark:border-cyan-800/70 bg-cyan-50/60 dark:bg-cyan-900/20 px-4 py-3 mb-6">
-          <p className="text-xs uppercase tracking-[0.16em] font-black text-cyan-700 dark:text-cyan-300 mb-1">
-            {tNode("setup.objectiveManagedByProfile")}
-          </p>
-          <p className="font-bold text-slate-900 dark:text-slate-100">
-            {strategyLabelMap[learningStrategy] || tNode("home.focusBalanced")}
-          </p>
-        </div>
-
-        <h3 className="text-sm font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400 mb-4">
-          {tNode("setup.intensitySection")}
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          {intensityOptions.map((option) => {
-            const isActive = sessionIntensity === option.id;
-            return (
-              <button
-                key={option.id}
-                type="button"
-                onClick={() => setSessionIntensity(option.id)}
-                className={`text-left px-4 py-3 rounded-2xl border transition-all ${
-                  isActive
-                    ? "border-emerald-400 bg-emerald-50 dark:bg-emerald-900/20"
-                    : "border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-slate-800/40"
-                }`}
-              >
-                <div className="font-bold text-slate-900 dark:text-slate-100">{option.label}</div>
-                <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">{option.desc}</div>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      <div className="rounded-3xl border border-slate-200/80 dark:border-slate-700/80 bg-white/70 dark:bg-slate-900/40 p-6 shadow-sm mb-6">
-        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-          <h3 className="text-sm font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
-            {tNode("setup.kanaSection")}
-          </h3>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={selectAllKana}
-              className="px-3 py-1.5 rounded-lg bg-cyan-100 dark:bg-cyan-900/40 text-cyan-700 dark:text-cyan-300 text-sm font-semibold"
-            >
-              {tNode("setup.selectAll")}
-            </button>
-            <button
-              type="button"
-              onClick={clearKanaSelection}
-              className="px-3 py-1.5 rounded-lg bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300 text-sm font-semibold"
-            >
-              {tNode("setup.clear")}
-            </button>
-          </div>
-        </div>
-
-        <p className="text-sm text-slate-600 dark:text-slate-300 mb-4">
-          {tNode("setup.selectedCount").replace("{count}", String(selectedKana.length))}
-        </p>
-
-        <div className="space-y-4">
-          {kanaLineGroups.map((group) => {
-            const availableRows = group.rows.filter((rowKey) => (rows[rowKey] || []).length > 0);
-            if (availableRows.length === 0) {
-              return null;
-            }
-
-            return (
-              <div key={group.id} className="rounded-2xl border border-slate-200/70 dark:border-slate-700/70 p-4 bg-white/60 dark:bg-slate-900/20">
-                <div className="space-y-3">
-                  {availableRows.map((rowKey) => {
-                    const rowItems = rows[rowKey];
-                    const rowKana = rowItems.map((item) => item.kana);
-                    const rowAllSelected = rowKana.every((kana) => selectedSet.has(kana));
-
-                    return (
-                      <div key={rowKey} className="flex flex-col gap-2">
-                        <div className="flex items-center justify-between gap-3">
-                          <span className="text-xs font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
-                            {getRowLabel(rowKey)}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => toggleKanaLine(rowKana)}
-                            className={`px-2.5 py-1 rounded-lg text-xs font-bold border ${rowAllSelected
-                              ? "border-rose-300 text-rose-700 bg-rose-50 dark:border-rose-800 dark:text-rose-300 dark:bg-rose-900/20"
-                              : "border-cyan-300 text-cyan-700 bg-cyan-50 dark:border-cyan-800 dark:text-cyan-300 dark:bg-cyan-900/20"
-                            }`}
-                          >
-                            {rowAllSelected ? tNode("setup.unselectLine") : tNode("setup.selectLine")}
-                          </button>
-                        </div>
-
-                        <div className="grid grid-cols-5 gap-3">
-                          {rowItems.map((item) => {
-                            const isSelected = selectedSet.has(item.kana);
-                            return (
-                              <button
-                                key={item.kana}
-                                type="button"
-                                onClick={() => toggleKana(item.kana)}
-                                className={`h-14 rounded-xl border text-xl font-bold transition-all ${
-                                  isSelected
-                                    ? "border-cyan-400 bg-cyan-50 dark:bg-cyan-900/30 text-cyan-800 dark:text-cyan-200"
-                                    : "border-slate-300 dark:border-slate-700 bg-white/70 dark:bg-slate-900/20 text-slate-700 dark:text-slate-300"
-                                }`}
-                                title={item.romaji}
-                              >
-                                {item.kana}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      <div className="rounded-3xl border border-slate-200/80 dark:border-slate-700/80 bg-white/70 dark:bg-slate-900/40 p-6 shadow-sm mb-6">
-        <h3 className="text-sm font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400 mb-4">
-          {tNode("setup.timerSection")}
-        </h3>
-        <div className="flex flex-col md:flex-row md:items-center gap-4">
-          <label className="cursor-pointer font-semibold text-gray-700 dark:text-gray-300 flex items-center group">
-            <div className="relative inline-block w-12 mr-3 align-middle select-none transition duration-200 ease-in">
-              <input
-                type="checkbox"
-                checked={useTimer}
-                onChange={(e) => setUseTimer(e.target.checked)}
-                className="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 border-gray-300 dark:border-gray-600 appearance-none cursor-pointer transition-all duration-300 checked:bg-indigo-500 checked:border-indigo-500 checked:right-0 right-6 z-10"
-                style={{ top: "0" }}
-              />
-              <div className={`toggle-label block overflow-hidden h-6 rounded-full cursor-pointer transition-colors duration-300 ${useTimer ? "bg-indigo-400" : "bg-gray-300 dark:bg-gray-600"}`}></div>
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        {/* Left: Kana Selection Grid (Bento Card) */}
+        <div className="lg:col-span-7 xl:col-span-8 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[3rem] p-8 md:p-10 shadow-xl shadow-slate-500/5 overflow-x-auto no-scrollbar">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4">
+            <h3 className="text-xs font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">
+              Sélection des Éléments
+            </h3>
+            <div className="flex flex-wrap gap-2">
+              <button onClick={selectAllKana} className="text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-600 hover:text-white transition-all border border-indigo-100 dark:border-indigo-800">Tout</button>
+              <button onClick={selectContrastPairs} className="text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 hover:bg-amber-600 hover:text-white transition-all border border-amber-100 dark:border-amber-800">Contrastes</button>
+              <button onClick={clearKanaSelection} className="text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-rose-500 hover:text-white transition-all border border-slate-200 dark:border-slate-700">Vider</button>
             </div>
-            {tNode("home.timerLabel")}
-          </label>
-
-          <div className={`flex items-center transition-opacity duration-300 ${useTimer ? "opacity-100" : "opacity-50 pointer-events-none"}`}>
-            <input
-              type="number"
-              value={timeLimit}
-              onChange={(e) => setTimeLimit(parseInt(e.target.value, 10) || 5)}
-              min="5"
-              max="3600"
-              className="w-24 px-4 py-2 rounded-xl border border-gray-200/80 dark:border-gray-700 bg-white/70 dark:bg-gray-800/70 text-black dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-300 text-center font-bold text-lg"
-              disabled={!useTimer}
-            />
-            <span className="ml-3 text-gray-600 dark:text-gray-400 font-medium">{tNode("home.seconds")}</span>
           </div>
-        </div>
-      </div>
 
-      <div className="rounded-3xl border border-slate-200/80 dark:border-slate-700/80 bg-white/70 dark:bg-slate-900/40 p-6 shadow-sm mb-6">
-        <h3 className="text-sm font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400 mb-4">
-          {tNode("setup.audioSection")}
-        </h3>
-        <div className="space-y-3">
-          <label className="flex items-center justify-between gap-3 p-3 rounded-xl border border-slate-200/70 dark:border-slate-700/70">
-            <span className="font-semibold text-slate-700 dark:text-slate-200">{tNode("setup.enablePronunciationAudio")}</span>
-            <input
-              type="checkbox"
-              checked={enableKanaAudio}
-              onChange={(e) => setEnableKanaAudio(e.target.checked)}
-              className="w-5 h-5"
-            />
-          </label>
-          <label className="flex items-center justify-between gap-3 p-3 rounded-xl border border-slate-200/70 dark:border-slate-700/70">
-            <div>
-              <p className="font-semibold text-slate-700 dark:text-slate-200">{tNode("setup.enableVoiceValidation")}</p>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{tNode("setup.voiceValidationDesc")}</p>
-            </div>
-            <input
-              type="checkbox"
-              checked={requireVoiceAnswer}
-              onChange={(e) => setRequireVoiceAnswer(e.target.checked)}
-              className="w-5 h-5"
-            />
-          </label>
-          <div className="p-3 rounded-xl border border-slate-200/70 dark:border-slate-700/70">
-            <p className="font-semibold text-slate-700 dark:text-slate-200 mb-1">{tNode("setup.aivisSpeakerLabel")}</p>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">{tNode("setup.aivisSpeakerDesc")}</p>
-            {aivisSpeakers.length > 0 ? (
-              <div className="flex flex-col md:flex-row md:items-center gap-2">
-                <select
-                  value={aivisSpeakerId}
-                  onChange={(e) => setAivisSpeakerId(parseInt(e.target.value, 10) || 888753760)}
-                  className="w-full md:w-80 px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white/80 dark:bg-gray-900/60"
-                >
-                  {aivisSpeakers.map((speaker) => (
-                    <option key={speaker.id} value={speaker.id}>{speaker.name}</option>
-                  ))}
-                </select>
+          {/* Group Buttons */}
+          <div className="flex flex-wrap gap-2 mb-8 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800/50">
+            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 mr-2 self-center">Groupes :</span>
+            {kanaLineGroups.map(group => {
+              const groupKana = group.rows.flatMap(rk => {
+                const h = hiraganaList.filter(k => getKanaRowKey(k.romaji) === rk);
+                const k = katakanaList.filter(k => getKanaRowKey(k.romaji) === rk);
+                return [...h, ...k].map(i => i.kana);
+              });
+              return (
                 <button
-                  type="button"
-                  onClick={previewSpeakerVoice}
-                  disabled={isPreviewPlaying}
-                  className="px-4 py-2 rounded-xl border border-cyan-300 dark:border-cyan-700 text-cyan-700 dark:text-cyan-300 font-bold bg-cyan-50/70 dark:bg-cyan-900/20 disabled:opacity-60"
+                  key={group.id}
+                  onClick={() => toggleMultipleKanaLines([groupKana])}
+                  className={`text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-lg border transition-all ${groupKana.every(k => selectedSet.has(k)) ? "bg-indigo-600 border-indigo-600 text-white" : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-500 hover:border-indigo-400 hover:text-indigo-600"}`}
                 >
-                  {isPreviewPlaying ? tNode("setup.previewLoading") : tNode("setup.previewVoice")}
+                  {group.id.toUpperCase()}
                 </button>
-              </div>
-            ) : (
-              <input
-                type="number"
-                min="1"
-                value={aivisSpeakerId}
-                onChange={(e) => setAivisSpeakerId(parseInt(e.target.value, 10) || 888753760)}
-                className="w-full md:w-56 px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white/80 dark:bg-gray-900/60"
-              />
-            )}
+              );
+            })}
+          </div>
+
+          <div className="space-y-12 min-w-[500px]">
+            {renderScriptGrid(hiraganaList, "Hiragana", "bg-pink-500")}
+            {renderScriptGrid(katakanaList, "Katakana", "bg-blue-500")}
           </div>
         </div>
+
+        {/* Right: Options and Start (Bento Card) */}
+        <div className="lg:col-span-5 xl:col-span-4 space-y-8">
+          {/* Strategy Info */}
+          <div className="p-8 bg-indigo-600 rounded-[2.5rem] text-white shadow-xl shadow-indigo-500/20 relative overflow-hidden">
+             <div className="absolute top-0 right-0 p-6 opacity-20 text-6xl">🎯</div>
+             <p className="text-[10px] font-black uppercase tracking-widest opacity-60 mb-2">Objectif Actuel</p>
+             <h4 className="text-xl font-black mb-1">{strategyLabelMap[learningStrategy] || "Équilibré"}</h4>
+             <p className="text-xs text-indigo-100 font-medium">Géré via votre profil d'apprentissage.</p>
+          </div>
+
+          {/* Intensity Selection */}
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[2.5rem] p-8 shadow-xl shadow-slate-500/5">
+            <h3 className="text-xs font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 mb-6">Intensité</h3>
+            <div className="space-y-3">
+              {intensityOptions.map(opt => (
+                <button
+                  key={opt.id}
+                  onClick={() => setSessionIntensity(opt.id)}
+                  className={`w-full p-4 rounded-2xl border-2 text-left transition-all flex items-center gap-4 ${sessionIntensity === opt.id ? "bg-slate-50 dark:bg-slate-800 border-indigo-500" : "bg-white dark:bg-slate-900 border-transparent hover:bg-slate-50 dark:hover:bg-slate-800"}`}
+                >
+                  <div className={`w-3 h-3 rounded-full shrink-0 ${opt.color}`}></div>
+                  <div>
+                    <p className="font-black text-slate-800 dark:text-white text-sm">{opt.label}</p>
+                    <p className="text-[10px] text-slate-500 font-medium">{opt.desc}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Extra Options */}
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[2.5rem] p-8 shadow-xl shadow-slate-500/5">
+            <h3 className="text-xs font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 mb-6">Options</h3>
+            <div className="space-y-4">
+              <label className="flex items-center justify-between cursor-pointer group">
+                <span className="font-black text-sm text-slate-600 dark:text-slate-400 group-hover:text-indigo-600 transition-colors">Activer le Chrono</span>
+                <input type="checkbox" checked={useTimer} onChange={e => setUseTimer(e.target.checked)} className="w-5 h-5 rounded-lg border-2 border-slate-300 text-indigo-600 focus:ring-indigo-500" />
+              </label>
+              <label className="flex items-center justify-between cursor-pointer group">
+                <span className="font-black text-sm text-slate-600 dark:text-slate-400 group-hover:text-indigo-600 transition-colors">Audio Automatique</span>
+                <input type="checkbox" checked={enableKanaAudio} onChange={e => setEnableKanaAudio(e.target.checked)} className="w-5 h-5 rounded-lg border-2 border-slate-300 text-indigo-600 focus:ring-indigo-500" />
+              </label>
+              <label className="flex items-center justify-between cursor-pointer group">
+                <span className="font-black text-sm text-slate-600 dark:text-slate-400 group-hover:text-indigo-600 transition-colors">Réponse Vocale (Beta)</span>
+                <input type="checkbox" checked={requireVoiceAnswer} onChange={e => setRequireVoiceAnswer(e.target.checked)} className="w-5 h-5 rounded-lg border-2 border-slate-300 text-indigo-600 focus:ring-indigo-500" />
+              </label>
+            </div>
+          </div>
+
+          {/* Action Button */}
+          {errorMsg && (
+            <div className="p-4 rounded-2xl bg-rose-50 dark:bg-rose-900/20 border border-rose-100 dark:border-rose-800 text-rose-600 dark:text-rose-400 text-xs font-black text-center animate-shake">
+              ⚠️ {errorMsg}
+            </div>
+          )}
+          <button
+            onClick={startGame}
+            className="w-full py-6 bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-[2rem] font-black text-xl shadow-2xl shadow-indigo-500/30 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-4 group"
+          >
+            <span>🚀</span>
+            Lancer la Session
+            <span className="opacity-50 group-hover:translate-x-2 transition-transform">→</span>
+          </button>
+        </div>
       </div>
-
-      {errorMsg && <div className="text-rose-500 font-bold mb-4 text-sm">{tNode(errorMsg)}</div>}
-
-      <button
-        type="button"
-        onClick={startGame}
-        className="self-start bg-gradient-to-r from-cyan-600 via-sky-500 to-emerald-500 hover:from-cyan-500 hover:to-emerald-400 text-white font-black text-lg px-10 py-4 rounded-2xl shadow-lg shadow-cyan-500/20 hover:shadow-xl hover:scale-[1.02] transition-all duration-300"
-      >
-        {tNode("setup.start")}
-      </button>
     </div>
   );
 }

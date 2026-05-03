@@ -18,11 +18,13 @@ export async function POST(request) {
     const hashedPassword = await bcrypt.hash(password, 10);
     const userAvatar = avatar || null;
 
-    await query('INSERT INTO users (username, password, avatar) VALUES (?, ?, ?)', [username, hashedPassword, userAvatar]);
+    const now = new Date().toISOString().slice(0, 19).replace('T', ' ');
+    await query('INSERT INTO users (username, password, avatar, created_at) VALUES (?, ?, ?, ?)', [username, hashedPassword, userAvatar, now]);
 
-    const newUser = await query('SELECT id, username, avatar FROM users WHERE username = ?', [username]);
+    const newUser = await query('SELECT * FROM users WHERE username = ?', [username]);
+    const { password: _, ...userWithoutPassword } = newUser[0];
     
-    return NextResponse.json({ success: true, user: newUser[0] });
+    return NextResponse.json({ success: true, user: userWithoutPassword });
   } catch (error) {
     console.error(error);
     return NextResponse.json({ error: "api.serverRegister" }, { status: 500 });

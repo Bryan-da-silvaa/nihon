@@ -45,6 +45,15 @@ function buildBucket(card, now) {
 }
 
 function getStrategyTargets(strategy, limit) {
+  if (strategy === "due_only") {
+    return {
+      due: limit,
+      weak: 0,
+      fresh: 0,
+      strict: true, // New flag for strict filtering
+    };
+  }
+
   if (strategy === "review") {
     return {
       due: clamp(Math.ceil(limit * 0.7), 1, limit),
@@ -147,13 +156,19 @@ export async function GET(request) {
     sessionCards.push(...due.slice(0, targets.due));
 
     const remainingAfterDue = limit - sessionCards.length;
-    sessionCards.push(...weak.slice(0, Math.min(targets.weak, remainingAfterDue)));
+    if (!targets.strict) {
+      sessionCards.push(...weak.slice(0, Math.min(targets.weak, remainingAfterDue)));
+    }
 
     const remainingAfterWeak = limit - sessionCards.length;
-    sessionCards.push(...fresh.slice(0, Math.min(targets.fresh, remainingAfterWeak)));
+    if (!targets.strict) {
+      sessionCards.push(...fresh.slice(0, Math.min(targets.fresh, remainingAfterWeak)));
+    }
 
     const remainingAfterFresh = limit - sessionCards.length;
-    sessionCards.push(...mastered.slice(0, Math.max(0, remainingAfterFresh)));
+    if (!targets.strict) {
+      sessionCards.push(...mastered.slice(0, Math.max(0, remainingAfterFresh)));
+    }
 
     const finalCards = sessionCards.slice(0, limit);
 

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { query, initDb } from "../../../lib/db";
+import { query, initDb } from "@/lib/db";
 
 export async function GET(request) {
   try {
@@ -27,7 +27,7 @@ export async function GET(request) {
 
     // Fetch strongest kanas (at least 3 attempts)
     const strongestKanas = await query(`
-      SELECT kana, attempts, correct, (correct / attempts * 100) as ratio 
+      SELECT kana, attempts, correct, COALESCE(correct / attempts * 100, 0) as ratio 
       FROM kana_stats 
       WHERE user_id = ? AND attempts >= 3 
       ORDER BY ratio DESC, attempts DESC 
@@ -36,7 +36,7 @@ export async function GET(request) {
 
     // Fetch weakest kanas (at least 3 attempts)
     const weakestKanas = await query(`
-      SELECT kana, attempts, correct, (correct / attempts * 100) as ratio 
+      SELECT kana, attempts, correct, COALESCE(correct / attempts * 100, 0) as ratio 
       FROM kana_stats 
       WHERE user_id = ? AND attempts >= 3 
       ORDER BY ratio ASC, attempts DESC 
@@ -58,9 +58,35 @@ export async function GET(request) {
     `, [userId]);
     const masteredCount = masteredRow[0]?.count || 0;
 
+    // SRS Stages Distribution
+    const srsDistribution = await query(`
+      SELECT 
+        CASE 
+          WHEN attempts = 0 THEN 'new'
+          WHEN srs_repetition BETWEEN 1 AND 3 THEN 'apprentice'
+          WHEN srs_repetition BETWEEN 4 AND 6 THEN 'guru'
+          WHEN srs_repetition BETWEEN 7 AND 8 THEN 'master'
+          WHEN srs_repetition BETWEEN 9 AND 10 THEN 'enlightened'
+          WHEN srs_repetition >= 11 THEN 'burned'
+          ELSE 'new'
+        END as stage,
+        COUNT(*) as count
+      FROM kana_stats
+      WHERE user_id = ?
+      GROUP BY stage
+    `, [userId]);
+
+    // Due for Review Count
+    const dueRow = await query(`
+      SELECT COUNT(*) as count
+      FROM kana_stats
+      WHERE user_id = ? AND srs_next_review <= NOW()
+    `, [userId]);
+    const dueCount = dueRow[0]?.count || 0;
+
     // Fetch ALL kana stats for the mastery heatmap
     const allKanaStats = await query(`
-      SELECT kana, attempts, correct, (correct / attempts * 100) as ratio 
+      SELECT kana, attempts, correct, COALESCE(correct / attempts * 100, 0) as ratio 
       FROM kana_stats 
       WHERE user_id = ?
     `, [userId]);
@@ -72,7 +98,15 @@ export async function GET(request) {
       ...userWithoutPassword,
       learning_strategy: userWithoutPassword.learning_strategy || "balanced",
       session_intensity: userWithoutPassword.session_intensity || "standard",
-      aivis_speaker_id: userWithoutPassword.aivis_speaker_id || 888753760,
+      language: userWithoutPassword.language || "fr",
+      dark_mode: userWithoutPassword.dark_mode !== undefined ? Boolean(userWithoutPassword.dark_mode) : true,
+      require_voice_answer: userWithoutPassword.require_voice_answer !== undefined ? Boolean(userWithoutPassword.require_voice_answer) : false,
+      use_timer: userWithoutPassword.use_timer !== undefined ? Boolean(userWithoutPassword.use_timer) : false,
+      time_limit: userWithoutPassword.time_limit || 60,
+      last_setup_mode: userWithoutPassword.last_setup_mode || "both",
+      last_setup_selection: typeof userWithoutPassword.last_setup_selection === 'string' 
+        ? JSON.parse(userWithoutPassword.last_setup_selection) 
+        : userWithoutPassword.last_setup_selection,
       total_time: totalTime,
       recent_games: recentGames,
       strongest_kanas: strongestKanas,
@@ -80,7 +114,9 @@ export async function GET(request) {
       global_accuracy: globalAccuracy,
       mastered_count: masteredCount,
       all_kana_stats: allKanaStats,
-      all_recent_games: allRecentGames
+      all_recent_games: allRecentGames,
+      srs_distribution: srsDistribution,
+      due_count: dueCount
     });
   } catch (error) {
     return NextResponse.json({ error: "api.dbConnection" }, { status: 500 });
@@ -89,7 +125,7 @@ export async function GET(request) {
 
 export async function PUT(request) {
   try {
-    const { userId, username, avatar, kanji, reading, learningStrategy, sessionIntensity, aivisSpeakerId } = await request.json();
+    const { userId, username, avatar, banner, kanji, reading, learningStrategy, sessionIntensity } = await request.json();
 
     if (!userId) return NextResponse.json({ error: "api.unauthorized" }, { status: 401 });
     await initDb();
@@ -106,24 +142,22 @@ export async function PUT(request) {
     const safeSessionIntensity = ["focused", "standard", "intensive"].includes(sessionIntensity)
       ? sessionIntensity
       : "standard";
-    const parsedSpeakerId = Number.parseInt(String(aivisSpeakerId ?? "888753760"), 10);
-    const safeAivisSpeakerId = Number.isFinite(parsedSpeakerId) && parsedSpeakerId > 0 ? parsedSpeakerId : 888753760;
 
-    // Mettre à jour username, avatar, kanji, reading et préférences pédagogiques
+    // Mettre à jour username, avatar, banner, kanji, reading et préférences pédagogiques
     await query(
-      "UPDATE users SET username = ?, avatar = ?, kanji = ?, reading = ?, learning_strategy = ?, session_intensity = ?, aivis_speaker_id = ? WHERE id = ?",
-      [username, avatar, kanji, reading, safeLearningStrategy, safeSessionIntensity, safeAivisSpeakerId, userId]
+      "UPDATE users SET username = ?, avatar = ?, banner = ?, kanji = ?, reading = ?, learning_strategy = ?, session_intensity = ? WHERE id = ?",
+      [username, avatar, banner, kanji, reading, safeLearningStrategy, safeSessionIntensity, userId]
     );
 
     return NextResponse.json({
       success: true,
       username,
       avatar,
+      banner,
       kanji,
       reading,
       learning_strategy: safeLearningStrategy,
       session_intensity: safeSessionIntensity,
-      aivis_speaker_id: safeAivisSpeakerId,
     });
   } catch (error) {
     return NextResponse.json({ error: "api.updateError" }, { status: 500 });

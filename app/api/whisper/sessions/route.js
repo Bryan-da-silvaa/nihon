@@ -5,10 +5,10 @@ import { query, initDb } from '../../../../lib/db';
 export async function GET() {
   try {
     await initDb();
-    const rows = await query(
-      `SELECT id, title, audio_filename, language, created_at FROM whisper_sessions ORDER BY created_at DESC`
-    );
-    return NextResponse.json({ sessions: rows });
+		const rows = await query(
+			`SELECT id, title, audio_filename, video_filename, language, created_at, (subs_content IS NOT NULL AND subs_content != '') as has_transcript FROM whisper_sessions ORDER BY created_at DESC`
+		);
+		return NextResponse.json({ sessions: rows });
   } catch (err) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }

@@ -50,7 +50,7 @@ export default function WhisperScreen({ goAdmin }) {
         alert("Erreur upload: " + data.error);
       }
     } catch (err) {
-      alert(t("whisper.uploadError"));
+      alert("Erreur réseau lors de l'upload.");
     } finally {
       setIsUploading(false);
     }
@@ -84,11 +84,10 @@ export default function WhisperScreen({ goAdmin }) {
       const data = JSON.parse(event.data);
 
       if (data.step === -1) {
-        // Error
         sse.close();
         setIsProcessing(false);
         setProgressStep(-1);
-        alert(t("whisper.processError") + " " + data.data.error);
+        alert("Erreur de traitement: " + data.data.error);
         return;
       }
 
@@ -96,257 +95,172 @@ export default function WhisperScreen({ goAdmin }) {
       setProgressPercent(data.percent);
 
       if (data.step === 3) {
-        // Done
         sse.close();
         setIsProcessing(false);
-        setTranscription(data.data.text);
+        setTranscription(data.data.transcription);
         setVideoTitle(data.data.title);
-        setGeneratedFiles({
-          audio: data.data.audioFile,
-          subs: data.data.transcriptFile,
-          romaji: data.data.romajiFile
-        });
+        setGeneratedFiles(data.data.files);
       }
-    };
-
-    sse.onerror = () => {
-      sse.close();
-      setIsProcessing(false);
-      setProgressStep(-1);
-      alert(t("whisper.connectionLost"));
     };
   };
 
+  const steps = [
+    { label: "Extraction Audio", icon: "🎵" },
+    { label: "Traitement FFmpeg", icon: "⚙️" },
+    { label: "Transcription Whisper", icon: "🧠" },
+    { label: "Finalisation", icon: "✨" }
+  ];
+
   return (
-    <div className="flex flex-col w-full h-full text-left py-6">
-      {/* Premium Sticky Header */}
-      <div className="sticky top-0 z-50 flex items-center justify-between mb-8 pb-4 border-b border-gray-200 dark:border-gray-700 bg-white/50 dark:bg-gray-800/50 backdrop-blur-md px-4 py-3 rounded-2xl shadow-sm">
-        <button 
-          onClick={goAdmin} 
-          className="flex items-center gap-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-600 px-4 py-2 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 font-bold transition-colors shadow-sm text-sm"
-        >
-          <span>⬅</span> <span>{t("whisper.backToAdmin")}</span>
-        </button>
-        <div className="flex items-center gap-2">
-           <span className="bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-400 text-xs font-black uppercase tracking-widest px-3 py-1 rounded-full border border-red-200 dark:border-red-800/50">
-             YouTube
-           </span>
-           <span className="bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-400 text-xs font-black uppercase tracking-widest px-3 py-1 rounded-full border border-indigo-200 dark:border-indigo-800/50">
-             Whisper IA
-           </span>
+    <div className="flex flex-col w-full min-h-screen bg-slate-50 dark:bg-slate-950 animate-fade-in pb-20">
+      {/* Top Navbar */}
+      <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-8 py-6 flex items-center justify-between sticky top-0 z-50">
+        <div className="flex items-center gap-4">
+          <button onClick={goAdmin} className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 hover:bg-indigo-600 hover:text-white transition-all group">
+             <span className="group-hover:-translate-x-1 transition-transform">⬅</span>
+          </button>
+          <div>
+            <h2 className="text-xl font-black text-slate-800 dark:text-white">Whisper Studio</h2>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Outil de Transcription Automatique</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <select 
+            value={language} 
+            onChange={(e) => setLanguage(e.target.value)}
+            className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 border-none font-bold text-sm text-slate-700 dark:text-slate-200"
+          >
+            <option value="ja">Japonais (JP)</option>
+            <option value="en">Anglais (EN)</option>
+            <option value="fr">Français (FR)</option>
+          </select>
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto w-full flex flex-col items-center">
-        {/* Title Section */}
-        <div className="text-center mb-10">
-          <div className="w-20 h-20 mx-auto bg-gradient-to-br from-red-500 to-rose-600 text-white rounded-3xl flex items-center justify-center shadow-lg shadow-red-500/30 mb-6 animate-pulse-slow">
-            <svg className="w-10 h-10" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
-            </svg>
+      <div className="max-w-4xl mx-auto w-full p-8 space-y-8">
+        {/* Input Section */}
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[2.5rem] p-8 md:p-12 shadow-xl shadow-slate-500/5">
+          <div className="flex flex-col items-center text-center mb-10">
+            <div className="w-16 h-16 rounded-2xl bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-3xl mb-4">🛰️</div>
+            <h3 className="text-2xl font-black text-slate-800 dark:text-white mb-2">Importer une Source</h3>
+            <p className="text-slate-500 dark:text-slate-400 font-medium">Collez une URL YouTube ou téléchargez un fichier audio local.</p>
           </div>
-          <h2 className="text-4xl md:text-5xl font-black bg-clip-text text-transparent bg-gradient-to-r from-gray-800 to-gray-500 dark:from-white dark:to-gray-400 drop-shadow-sm mb-4">
-            {t("whisper.title")}
-          </h2>
-          <p className="text-gray-500 dark:text-gray-400 font-medium text-lg max-w-2xl mx-auto">
-            {t("whisper.subtitle")}
-          </p>
-        </div>
 
-        {/* Input Zone */}
-        <div className={`w-full max-w-2xl relative group rounded-[2.5rem] overflow-hidden border-2 transition-all duration-300 flex flex-col p-8 sm:p-12 bg-white/50 dark:bg-gray-800/50 backdrop-blur-md shadow-sm
-            ${isValidUrl ? 'border-emerald-500 shadow-xl' : 'border-gray-200 dark:border-gray-700'}
-            ${isProcessing ? 'opacity-50 pointer-events-none' : ''}
-          `}
-        >
-          <label htmlFor="youtube-url" className="text-sm font-bold text-gray-700 dark:text-gray-300 mb-3 ml-2 uppercase tracking-wide">
-            {t("whisper.youtubeLabel")}
-          </label>
-          <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-2xl">
-              🔗
-            </div>
-            <input 
-              id="youtube-url"
-              type="text" 
-              placeholder={t("whisper.youtubePlaceholder")}
-              value={youtubeUrl}
-              onChange={handleUrlChange}
-              disabled={isProcessing}
-              className={`w-full pl-12 pr-4 py-5 rounded-2xl text-lg font-medium transition-all duration-300 outline-none border-2
-                ${isValidUrl 
-                  ? 'border-emerald-400 dark:border-emerald-500/50 bg-emerald-50/30 dark:bg-emerald-900/10 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/20 text-emerald-800 dark:text-emerald-100' 
-                  : 'border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900/50 focus:border-red-400 focus:ring-4 focus:ring-red-500/20 text-gray-800 dark:text-white'}
-              `}
-            />
-            {isValidUrl && (
-              <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
-                <span className="bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400 p-1.5 rounded-full">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>
-                </span>
+          <div className="space-y-6">
+            {/* YouTube Input */}
+            <div className="relative group">
+              <input
+                type="text"
+                placeholder="https://www.youtube.com/watch?v=..."
+                value={youtubeUrl}
+                onChange={handleUrlChange}
+                disabled={isProcessing || isUploading}
+                className="w-full px-8 py-5 rounded-2xl bg-slate-50 dark:bg-slate-800 border-2 border-transparent focus:border-indigo-500 transition-all font-bold text-slate-700 dark:text-white outline-none"
+              />
+              <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                {isValidUrl && <span className="text-emerald-500">✅</span>}
               </div>
-            )}
-          </div>
-          
-          <div className="mt-4 flex items-center justify-center">
-             <div className="h-[1px] w-full bg-gray-200 dark:bg-gray-700"></div>
-             <span className="px-4 text-xs font-bold text-gray-400 uppercase">{t("whisper.or")}</span>
-             <div className="h-[1px] w-full bg-gray-200 dark:bg-gray-700"></div>
-          </div>
-          
-          <div className="mt-4">
-            <input 
-              type="file" 
-              accept="audio/*,video/*" 
-              ref={fileInputRef}
-              onChange={handleFileUpload}
-              className="hidden" 
-              id="media-upload"
-              disabled={isProcessing || isUploading}
-            />
-            <label 
-              htmlFor="media-upload"
-              className={`w-full cursor-pointer flex flex-col items-center justify-center py-6 px-4 rounded-2xl border-2 border-dashed transition-all
-                ${fileId 
-                  ? 'border-indigo-400 bg-indigo-50/50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300' 
-                  : 'border-gray-300 dark:border-gray-600 hover:border-indigo-400 hover:bg-gray-50 dark:hover:bg-gray-800/50 text-gray-600 dark:text-gray-400'}
-                ${isUploading ? 'opacity-50 pointer-events-none' : ''}
-              `}
+            </div>
+
+            <div className="flex items-center gap-4">
+              <div className="h-px flex-1 bg-slate-200 dark:bg-slate-800"></div>
+              <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Ou</span>
+              <div className="h-px flex-1 bg-slate-200 dark:bg-slate-800"></div>
+            </div>
+
+            {/* File Upload */}
+            <div 
+              onClick={() => !isProcessing && !isUploading && fileInputRef.current.click()}
+              className={`p-10 border-4 border-dashed rounded-[2rem] flex flex-col items-center justify-center cursor-pointer transition-all ${fileId ? 'border-emerald-500 bg-emerald-50/10' : 'border-slate-200 dark:border-slate-800 hover:border-indigo-400'}`}
             >
+              <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" accept="audio/*,video/*" />
               {isUploading ? (
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mb-2"></div>
+                <div className="flex flex-col items-center animate-pulse">
+                  <div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+                  <span className="font-black text-sm text-indigo-500 uppercase">Téléchargement...</span>
+                </div>
+              ) : fileId ? (
+                <div className="flex flex-col items-center">
+                  <span className="text-4xl mb-4">📄</span>
+                  <span className="font-black text-slate-800 dark:text-white">{originalName}</span>
+                  <span className="text-xs text-emerald-500 font-bold mt-1">Fichier prêt pour traitement</span>
+                </div>
               ) : (
-                <div className="text-3xl mb-2">📁</div>
+                <div className="flex flex-col items-center text-slate-400">
+                  <span className="text-4xl mb-4">📁</span>
+                  <span className="font-black text-sm uppercase tracking-widest">Cliquer pour parcourir</span>
+                </div>
               )}
-              <span className="font-medium text-center">
-                {isUploading ? t("whisper.uploading") : 
-                 fileId ? t("whisper.fileReady").replace("{filename}", originalName) : 
-                 t("whisper.uploadLabel")}
-              </span>
-            </label>
+            </div>
+
+            {/* Action Button */}
+            <button
+              onClick={handleProcess}
+              disabled={(!isValidUrl && !fileId) || isProcessing || isUploading}
+              className={`w-full py-6 rounded-[2rem] font-black text-xl shadow-2xl transition-all flex items-center justify-center gap-4 group ${(!isValidUrl && !fileId) || isProcessing || isUploading ? 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none' : 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white hover:scale-[1.02] active:scale-95 shadow-indigo-500/30'}`}
+            >
+              {isProcessing ? "Traitement en cours..." : "🚀 Lancer la Transcription"}
+            </button>
           </div>
         </div>
 
-        {/* Action Bar (Only shows when ready and NOT processing/done) */}
-        {(isValidUrl || fileId) && progressStep === -1 && (
-          <div className="w-full max-w-2xl mt-8 transition-all duration-500 opacity-100 translate-y-0 animate-in slide-in-from-bottom-4">
-            <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-md border border-gray-200 dark:border-gray-700 rounded-3xl p-6 shadow-lg flex flex-col sm:flex-row gap-4 items-center justify-between">
-              <div className="flex flex-col w-full sm:w-auto">
-                <label className="text-sm font-bold text-gray-500 dark:text-gray-400 mb-1">{t("whisper.langLabel")}</label>
-                <select 
-                  value={language}
-                  onChange={(e) => setLanguage(e.target.value)}
-                  className="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2 font-medium text-gray-800 dark:text-gray-200 outline-none focus:ring-2 focus:ring-indigo-500"
-                >
-                  <option value="auto">{t("whisper.langAuto")}</option>
-                  <option value="ja">{t("whisper.langJa")}</option>
-                  <option value="fr">{t("whisper.langFr")}</option>
-                  <option value="en">{t("whisper.langEn")}</option>
-                </select>
+        {/* Processing State */}
+        {isProcessing && (
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[2.5rem] p-10 shadow-xl space-y-8 animate-in slide-in-from-bottom-4">
+            <div className="grid grid-cols-4 gap-4">
+              {steps.map((step, idx) => (
+                <div key={idx} className="flex flex-col items-center text-center">
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-xl mb-3 transition-all ${progressStep >= idx ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20' : 'bg-slate-100 dark:bg-slate-800 text-slate-400'}`}>
+                    {progressStep > idx ? "✅" : step.icon}
+                  </div>
+                  <span className={`text-[10px] font-black uppercase tracking-widest ${progressStep >= idx ? 'text-indigo-600' : 'text-slate-400'}`}>{step.label}</span>
+                </div>
+              ))}
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex justify-between text-xs font-bold text-slate-500 uppercase tracking-widest">
+                <span>{steps[progressStep]?.label || "Initialisation"}</span>
+                <span>{progressPercent}%</span>
               </div>
-              
-              <button 
-                onClick={handleProcess}
-                className="w-full sm:w-auto px-8 py-4 rounded-xl font-bold text-white shadow-lg transition-all duration-300 flex items-center justify-center gap-2 bg-gradient-to-r from-red-500 via-purple-500 to-indigo-600 hover:shadow-purple-500/30 hover:scale-105 active:scale-95"
-              >
-                🚀 {t("whisper.startButton")}
-              </button>
+              <div className="h-4 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden p-1">
+                <div className="h-full bg-indigo-600 rounded-full transition-all duration-500 shadow-[0_0_15px_rgba(79,70,229,0.5)]" style={{ width: `${progressPercent}%` }}></div>
+              </div>
             </div>
           </div>
         )}
 
-        {/* Progress UI */}
-        {(progressStep >= 0) && (
-          <div className="w-full max-w-2xl mt-8 bg-white/80 dark:bg-gray-800/80 backdrop-blur-md border border-gray-200 dark:border-gray-700 rounded-3xl p-8 shadow-xl flex flex-col animate-in fade-in slide-in-from-bottom-4 duration-500 relative overflow-hidden">
-            
-            <h3 className="text-2xl font-bold mb-6 text-gray-800 dark:text-white flex items-center gap-3">
-              {progressStep === 3 ? t("whisper.stepDone") : t("whisper.stepProcessing")}
-            </h3>
-            
-            {/* Steps list */}
-            <div className="space-y-6 relative z-10">
-              {[
-                { name: t("whisper.step1"), emoji: "📥" },
-                { name: t("whisper.step2"), emoji: "🎵" },
-                { name: t("whisper.step3"), emoji: "✨" }
-              ].map((step, idx) => {
-                const isActive = progressStep === idx;
-                const isPast = progressStep > idx;
-                const isPending = progressStep < idx;
-                
-                let percentToDisplay = 0;
-                if (isActive) percentToDisplay = progressPercent;
-                else if (isPast) percentToDisplay = 100;
-
-                return (
-                  <div key={idx} className={`flex flex-col gap-2 transition-all duration-500 ${isPending ? 'opacity-40' : 'opacity-100'}`}>
-                    <div className="flex justify-between items-center text-sm font-bold">
-                      <span className={`${isActive ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-700 dark:text-gray-300'}`}>
-                        {step.emoji} {step.name}
-                      </span>
-                      <span className={isActive ? 'text-indigo-600 dark:text-indigo-400' : isPast ? 'text-emerald-500 dark:text-emerald-400' : 'text-gray-500'}>
-                        {percentToDisplay}%
-                      </span>
-                    </div>
-                    {/* Progress Bar Track */}
-                    <div className="w-full h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden shadow-inner">
-                      {/* Progress Bar Fill */}
-                      <div 
-                        className={`h-full rounded-full transition-all duration-300 ${isPast ? 'bg-emerald-500' : isActive ? 'bg-indigo-500 relative' : 'bg-transparent'}`}
-                        style={{ width: `${percentToDisplay}%` }}
-                      >
-                        {isActive && (
-                          <div className="absolute inset-0 bg-white/20 animate-pulse"></div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
+        {/* Results Section */}
+        {progressStep === 3 && transcription && (
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[2.5rem] p-10 shadow-xl space-y-8 animate-in zoom-in-95">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xl font-black text-slate-800 dark:text-white">Transcription Terminée ✨</h3>
+              <div className="px-4 py-1 rounded-full bg-emerald-100 text-emerald-600 text-[10px] font-black uppercase tracking-widest">Succès</div>
             </div>
 
-            {progressStep === 3 && (
-              <div className="mt-8 pt-8 border-t border-gray-200 dark:border-gray-700 flex flex-col items-center animate-in fade-in zoom-in duration-500">
-                <div className="w-full text-center mb-6">
-                  <h3 className="text-xl md:text-2xl font-bold text-gray-800 dark:text-white mb-2">
-                    {videoTitle || t("whisper.doneDefaultTitle")}
-                  </h3>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">{t("whisper.doneSubtitle")}</p>
-                </div>
-                
-                {generatedFiles && (
-                  <div className="w-full bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/50 rounded-2xl p-4 mb-6 flex flex-col gap-2 text-sm text-emerald-800 dark:text-emerald-400">
-                    <p className="font-bold">{t("whisper.filesTitle")} :</p>
-                    <ul className="list-disc list-inside opacity-90 pl-2">
-                      <li>🎵 {t("whisper.audioFile")} : {generatedFiles.audio}</li>
-                      <li>🇯🇵 {t("whisper.subsFile")} : {generatedFiles.subs}</li>
-                      {generatedFiles.romaji && <li>🔤 {t("whisper.romajiFile")} : {generatedFiles.romaji}</li>}
-                    </ul>
-                  </div>
-                )}
-                
-                <div className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl p-6 mb-6 shadow-inner relative group">
-                  <div className="absolute top-4 right-4 text-xs font-bold bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-400 px-3 py-1 rounded-full">
-                    {t("whisper.resultTitle")}
-                  </div>
-                  <textarea 
-                    readOnly 
-                    className="w-full h-64 bg-transparent outline-none text-gray-700 dark:text-gray-300 resize-none font-medium text-lg leading-relaxed"
-                    value={transcription || t("whisper.emptyTranscription")}
-                  />
-                </div>
-                
-                <button 
-                  onClick={() => { setProgressStep(-1); setYoutubeUrl(""); setIsValidUrl(false); setTranscription(""); setVideoTitle(""); setGeneratedFiles(null); }}
-                  className="px-8 py-4 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 font-bold rounded-xl transition-colors flex items-center gap-2"
-                >
-                  <span>🔄</span> {t("whisper.restartBtn")}
-                </button>
+            <div className="p-6 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 max-h-[300px] overflow-y-auto no-scrollbar font-medium text-slate-700 dark:text-slate-300 leading-relaxed italic">
+              "{transcription}"
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="p-6 rounded-[2rem] bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800">
+                <h4 className="text-[10px] font-black uppercase tracking-widest text-indigo-600 mb-3">Titre Détecté</h4>
+                <p className="font-bold text-slate-800 dark:text-white line-clamp-1">{videoTitle || "Sans Titre"}</p>
               </div>
-            )}
+              <div className="p-6 rounded-[2rem] bg-purple-50 dark:bg-purple-900/20 border border-purple-100 dark:border-purple-800">
+                <h4 className="text-[10px] font-black uppercase tracking-widest text-purple-600 mb-3">Fichiers Générés</h4>
+                <p className="font-bold text-slate-800 dark:text-white">SRT, Romaji SRT, MP3</p>
+              </div>
+            </div>
+
+            <button 
+              onClick={goAdmin}
+              className="w-full py-4 rounded-2xl bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 font-black text-sm uppercase tracking-widest hover:scale-[1.02] transition-all"
+            >
+              Terminer et Retourner au Dashboard
+            </button>
           </div>
         )}
-        
       </div>
     </div>
   );

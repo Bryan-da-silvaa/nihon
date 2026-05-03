@@ -1,75 +1,92 @@
-# Nihon - Japanese Kana Learning Application
+# Nihon - All-in-One Japanese Learning Platform
 
 ## Project Overview
-Nihon is a comprehensive web application designed for learning and practicing Japanese Hiragana and Katakana. It provides an interactive interface for users to test their knowledge, track their progress, and customize their learning experience.
+Nihon is a premium, full-stack web application designed for mastering the Japanese language. It combines modern pedagogical techniques with advanced technology to provide a seamless learning journey.
 
-### Main Technologies
-- **Frontend**: [Next.js](https://nextjs.org/) (App Router), React 19, [Tailwind CSS 4](https://tailwindcss.com/)
-- **Backend**: Next.js API Routes
-- **Database**: MySQL (managed via `mysql2/promise`)
-- **Authentication**: Custom implementation using `bcryptjs`
-- **State Management**: React Hooks and Context API
-- **Internationalization**: Custom localization system with support for French and Japanese, including automatic Furigana (Ruby) generation for Kanji.
-
-### Architecture
-The project follows a modular structure within the Next.js App Router:
-- `app/`: Contains page layouts, the main entry point, and API routes.
-- `components/`: UI components for different screens (Auth, Game, Home, Profile, Score).
-- `context/`: Global state management, primarily for localization.
-- `hooks/`: Custom hooks for game logic, timers, and authentication state.
-- `data/`: JSON files containing Kana definitions and Furigana mappings.
-- `lib/`: Shared utility functions, including database connection logic.
-- `locales/`: Translation files for supported languages.
+### Core Pillars
+- **SRS Foundations**: Mastery of Hiragana and Katakana through an intelligent Spaced Repetition System (SRS).
+- **Advanced Analytics**: Detailed tracking of progress via mastery heatmaps, accuracy charts, and historical session data.
+- **Immersion Hub**: A sophisticated media player for video and audio content, featuring interactive transcriptions (Whisper-powered), A-B looping, and cinematic viewing modes.
+- **Linguistic Engine**: Automatic Furigana (Ruby) generation and Romaji conversion for immersive study.
+- **JLPT Progression**: Structured paths for Kanji and Vocabulary from N5 to N1.
 
 ---
 
-## Building and Running
+## Technical Stack
+
+### Frontend & Backend
+- **Framework**: [Next.js](https://nextjs.org/) 16.2.4 (App Router)
+- **Runtime**: React 19
+- **Styling**: [Tailwind CSS 4](https://tailwindcss.com/) with custom cinematic animations.
+- **Linguistics**: `kuroshiro` & `kuromoji` for Japanese text processing.
+
+### Data & Infrastructure
+- **Database**: MySQL (handled via `mysql2/promise`)
+- **Persistence**: Custom SQL-based maintenance tools (Import/Export).
+- **Media**: Integrated Whisper API support for synchronized transcriptions.
+- **Authentication**: Secure custom implementation with `bcryptjs`.
+
+---
+
+## Architecture & Project Structure
+
+The project follows a modular, screen-based architecture within the Next.js App Router:
+
+- `app/`: Routing, layout, and API endpoints (Score tracking, Admin, Whisper sync, Profile).
+- `components/`: UI layer, categorized by state:
+  - `*Screen.js`: High-level screens (Home, Game, Library, Player, Profile, Admin).
+  - `Utility`: Reusable elements like `Furigana.js`, `Ruby.js`, and `Navbar.js`.
+- `hooks/`: Business logic extraction:
+  - `useKanaEngine.js`: Global state, game orchestration, and SRS logic.
+  - `useGameTimer.js`: Precision timing for sessions.
+- `context/`: `LanguageContext.js` for custom localization and Furigana injection.
+- `lib/`: Core utilities including `db.js` (MySQL query helper) and `kana.js` (Linguistic constants).
+- `data/`: Static mappings for Kana and Furigana.
+
+---
+
+## Development & Deployment
 
 ### Prerequisites
-- Node.js (v18+ recommended)
-- MySQL database
+- Node.js v18+
+- MySQL Instance
 
-### Environment Variables
-Create a `.env` file (or set environment variables) with the following:
+### Environment Setup
+Create a `.env` file:
 ```env
-DB_HOST=your_host
-DB_USER=your_user
+DB_HOST=localhost
+DB_USER=root
 DB_PASSWORD=your_password
-DB_NAME=your_database_name
+DB_NAME=nihon
 ```
 
 ### Commands
-- **Start Development Server**: `npm run dev`
-- **Build for Production**: `npm run build`
-- **Start Production Server**: `npm run start`
-- **Linting**: `npm run lint`
+- `npm run dev`: Start development server (Port 3000).
+- `npm run build`: Production optimization.
+- `npm run start`: Production server launch.
 
 ---
 
-## Development Conventions
+## Key Conventions
 
-### Localization and Furigana
-The project uses a custom `LanguageProvider` (`context/LanguageContext.js`) for translations:
-- Use `t("key.path")` for simple text translations.
-- Use `tWithVars("key.path", { var: value })` for translations with dynamic variables.
-- Use `tNode("key.path")` when Japanese text needs automatic Furigana (Ruby characters). It uses `data/furigana.json` for mapping.
+### 1. Localization & Furigana
+The system uses a custom provider (`context/LanguageContext.js`):
+- `t("key.path")`: Simple translations.
+- `tWithVars("key", { var: value })`: Dynamic variables.
+- `tNode("key")`: Japanese text with automatic Furigana injection.
 
-### Game Logic
-The core game engine is encapsulated in the `useKanaEngine` hook (`hooks/useKanaEngine.js`). This hook manages:
-- Current screen state (`home`, `game`, `score`, `profile`).
-- User session and authentication.
-- Game configuration (mode, count, timer).
-- Answer validation and score tracking.
+### 2. Player Experience (Immersion)
+The `PlayerScreen.js` is built for immersion:
+- **Cinema Mode (`T`)**: Expands video to full width.
+- **Fullscreen Hub (`H`)**: Toggles a sleek transcription overlay in fullscreen.
+- **Scrubbing**: Click and drag on the progress bar for precise navigation.
+- **Shortcuts**: `Space` (Play/Pause), `F` (Fullscreen), `Arrows` (Seek/Volume).
 
-### Components
-- **Screen Components**: Components in `components/` ending in `Screen.js` represent major application states.
-- **Utility Components**: `Furigana.js`, `Ruby.js`, and `Navbar.js` provide reusable UI elements.
+### 3. Database Maintenance
+Admin tools are located in `AdminScreen.js`:
+- **SQL Export**: Generates a full database dump.
+- **SQL Import**: Destructive restoration from a `.sql` file.
 
-### Database Operations
-- All database queries should use the `query` helper from `lib/db.js`.
-- SQL scripts for database initialization can be found in `scripts/`.
-
-### Styling
-- The project uses Tailwind CSS 4.
-- `globals.css` contains global styles and theme variables.
-- Dark mode is supported and managed via the `useDarkMode` hook.
+### 4. Styling System
+- Uses Tailwind CSS 4 with `@theme` variables in `globals.css`.
+- Support for smooth transitions and dark mode is deeply integrated.

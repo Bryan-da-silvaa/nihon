@@ -13,7 +13,7 @@ export async function GET(request) {
   try {
     await initDb();
     const rows = await query(
-      `SELECT ws.id, ws.title, ws.audio_filename, ws.video_filename, ws.language, ws.created_at, ul.added_at,
+      `SELECT ws.id, ws.title, ws.audio_filename, ws.video_filename, ws.thumbnail_filename, ws.language, ws.created_at, ul.added_at,
               GROUP_CONCAT(ut.tag_name SEPARATOR ',') as tags
        FROM user_library ul
        JOIN whisper_sessions ws ON ul.session_id = ws.id

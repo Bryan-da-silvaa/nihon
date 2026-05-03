@@ -24,7 +24,8 @@ export async function POST(request) {
     }
 
     // Le mot de passe est bon, on renvoie les infos de l'utilisateur sans le mot de passe
-    return NextResponse.json({ success: true, user: { id: user.id, username: user.username, avatar: user.avatar } });
+    const { password: _, ...userWithoutPassword } = user;
+    return NextResponse.json({ success: true, user: userWithoutPassword });
 
   } catch (error) {
     console.error(error);
