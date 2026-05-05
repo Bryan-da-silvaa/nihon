@@ -29,13 +29,13 @@ MARIADB_ROOT_PASSWORD=root_password
 
 ```bash
 # Build les images Docker
-docker-compose build
+docker compose build
 
 # Démarrer les services
-docker-compose up -d
+docker compose up -d
 
 # Voir les logs
-docker-compose logs -f nihon-app
+docker compose logs -f nihon-app
 ```
 
 L'application sera disponible sur : **http://localhost:3000**
@@ -44,30 +44,30 @@ L'application sera disponible sur : **http://localhost:3000**
 
 ```bash
 # Utiliser la configuration de développement
-docker-compose -f docker-compose.dev.yml up -d
+docker compose -f docker-compose.dev.yml up -d
 
 # Voir les logs en temps réel
-docker-compose -f docker-compose.dev.yml logs -f nihon-app
+docker compose -f docker-compose.dev.yml logs -f nihon-app
 ```
 
 ## 🛑 Arrêter les services
 
 ```bash
 # Production
-docker-compose down
+docker compose down
 
 # Développement
-docker-compose -f docker-compose.dev.yml down
+docker compose -f docker-compose.dev.yml down
 ```
 
 ## 🗑️ Nettoyage complet (y compris les données)
 
 ```bash
 # Production
-docker-compose down -v
+docker compose down -v
 
 # Développement
-docker-compose -f docker-compose.dev.yml down -v
+docker compose -f docker-compose.dev.yml down -v
 ```
 
 ## 📦 Services disponibles
@@ -88,38 +88,38 @@ docker-compose -f docker-compose.dev.yml down -v
 ### Build custom
 ```bash
 # Rebuild des images
-docker-compose build --no-cache
+docker compose build --no-cache
 ```
 
 ### Accéder à la base de données
 ```bash
 # Shell MySQL interactif
-docker-compose exec mariadb mariadb -u root -p${MARIADB_ROOT_PASSWORD} ${DB_NAME}
+docker compose exec mariadb mariadb -u root -p${MARIADB_ROOT_PASSWORD} ${DB_NAME}
 
 # Exemple :
-docker-compose exec mariadb mariadb -u root -proot_password nihon_db
+docker compose exec mariadb mariadb -u root -proot_password nihon_db
 ```
 
 ### Voir les logs
 ```bash
 # Tous les services
-docker-compose logs
+docker compose logs
 
 # Service spécifique
-docker-compose logs nihon-app
-docker-compose logs mariadb
+docker compose logs nihon-app
+docker compose logs mariadb
 
 # Suivi en temps réel
-docker-compose logs -f
+docker compose logs -f
 ```
 
 ### Exécuter une commande dans un conteneur
 ```bash
 # Next.js
-docker-compose exec nihon-app npm run lint
+docker compose exec nihon-app npm run lint
 
 # MariaDB
-docker-compose exec mariadb mariadb-admin status -u root -proot_password
+docker compose exec mariadb mariadb-admin status -u root -proot_password
 ```
 
 ## 🔍 Dépannage
@@ -164,13 +164,13 @@ ports:
 
 ```bash
 # Arrêter et supprimer tous les conteneurs et volumes
-docker-compose down -v
+docker compose down -v
 
 # Supprimer les images
 docker rmi nihon-nihon-app
 
 # Recommencer
-docker-compose up -d
+docker compose up -d
 ```
 
 ## 📊 Voir les ressources utilisées
@@ -200,6 +200,6 @@ docker network inspect nihon_nihon-network
 ## 🤝 Support
 
 Pour toute question ou problème, consultez :
-- Les logs des services : `docker-compose logs`
-- La santé des services : `docker-compose ps`
-- La configuration : `docker-compose config`
+- Les logs des services : `docker compose logs`
+- La santé des services : `docker compose ps`
+- La configuration : `docker compose config`

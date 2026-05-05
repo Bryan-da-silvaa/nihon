@@ -47,8 +47,8 @@ check_docker() {
         exit 1
     fi
     
-    if ! command -v docker-compose &> /dev/null; then
-        print_error "Docker Compose n'est pas installé"
+    if ! docker compose version &> /dev/null; then
+        print_error "Docker Compose (plugin) n'est pas installé"
         exit 1
     fi
     
@@ -64,10 +64,10 @@ start_production() {
     check_env_file
     
     print_info "Construction des images..."
-    docker-compose build
+    docker compose build
     
     print_info "Démarrage des services..."
-    docker-compose up -d
+    docker compose up -d
     
     print_success "Services démarrés!"
     echo ""
@@ -75,9 +75,9 @@ start_production() {
     echo -e "${GREEN}Base de données: ${BLUE}localhost:3306${NC}"
     echo ""
     echo -e "Commandes utiles:"
-    echo -e "  ${YELLOW}docker-compose logs -f${NC}        - Voir les logs en temps réel"
-    echo -e "  ${YELLOW}docker-compose ps${NC}             - Voir l'état des services"
-    echo -e "  ${YELLOW}docker-compose down${NC}           - Arrêter les services"
+    echo -e "  ${YELLOW}docker compose logs -f${NC}        - Voir les logs en temps réel"
+    echo -e "  ${YELLOW}docker compose ps${NC}             - Voir l'état des services"
+    echo -e "  ${YELLOW}docker compose down${NC}           - Arrêter les services"
 }
 
 start_development() {
@@ -89,7 +89,7 @@ start_development() {
     check_env_file
     
     print_info "Démarrage des services en mode développement..."
-    docker-compose -f docker-compose.dev.yml up -d
+    docker compose -f docker-compose.dev.yml up -d
     
     print_success "Services de développement démarrés!"
     echo ""
@@ -97,8 +97,8 @@ start_development() {
     echo -e "${GREEN}Base de données: ${BLUE}localhost:3306${NC}"
     echo ""
     echo -e "Commandes utiles:"
-    echo -e "  ${YELLOW}docker-compose -f docker-compose.dev.yml logs -f${NC} - Voir les logs en temps réel"
-    echo -e "  ${YELLOW}docker-compose -f docker-compose.dev.yml ps${NC}    - Voir l'état des services"
+    echo -e "  ${YELLOW}docker compose -f docker-compose.dev.yml logs -f${NC} - Voir les logs en temps réel"
+    echo -e "  ${YELLOW}docker compose -f docker-compose.dev.yml ps${NC}    - Voir l'état des services"
     echo -e "  ${YELLOW}./docker-start.sh stop${NC}                          - Arrêter les services"
 }
 
@@ -107,7 +107,7 @@ stop_services() {
     echo ""
     
     print_info "Arrêt des services..."
-    docker-compose down
+    docker compose down
     
     print_success "Services arrêtés"
 }
@@ -122,7 +122,7 @@ clean_all() {
     
     if [[ $REPLY =~ ^[Yy]$ ]]; then
         print_info "Suppression des conteneurs, réseaux et volumes..."
-        docker-compose down -v
+        docker compose down -v
         print_success "Nettoyage terminé"
     else
         print_info "Annulé"

@@ -26,51 +26,51 @@ help:
 
 # Production commands
 build:
-	docker-compose build
+	docker compose build
 
 up:
-	docker-compose up -d
+	docker compose up -d
 	@echo "✅ Services started. App available at http://localhost:3000"
 
 stop:
-	docker-compose stop
+	docker compose stop
 
 down:
-	docker-compose down
+	docker compose down
 
 logs:
-	docker-compose logs -f
+	docker compose logs -f
 
 ps:
-	docker-compose ps
+	docker compose ps
 
 restart: stop up
 
 # Development commands
 dev:
-	docker-compose -f docker-compose.dev.yml up -d
+	docker compose -f docker-compose.dev.yml up -d
 	@echo "✅ Development services started. App available at http://localhost:3000 with hot reload"
 
 dev-logs:
-	docker-compose -f docker-compose.dev.yml logs -f
+	docker compose -f docker-compose.dev.yml logs -f
 
 dev-down:
-	docker-compose -f docker-compose.dev.yml down
+	docker compose -f docker-compose.dev.yml down
 
 # Database commands
 db-shell:
-	docker-compose exec mariadb mariadb -u root -p$$(grep MARIADB_ROOT_PASSWORD .env 2>/dev/null | cut -d= -f2) $$(grep DB_NAME .env 2>/dev/null | cut -d= -f2)
+	docker compose exec mariadb mariadb -u root -p$$(grep MARIADB_ROOT_PASSWORD .env 2>/dev/null | cut -d= -f2) $$(grep DB_NAME .env 2>/dev/null | cut -d= -f2)
 
 db-logs:
-	docker-compose logs mariadb
+	docker compose logs mariadb
 
 # Cleanup commands
 clean:
-	docker-compose down -v
+	docker compose down -v
 	@echo "✅ All containers, networks, and volumes removed"
 
 clean-dev:
-	docker-compose -f docker-compose.dev.yml down -v
+	docker compose -f docker-compose.dev.yml down -v
 	@echo "✅ All development containers, networks, and volumes removed"
 
 # View image sizes
