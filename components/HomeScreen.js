@@ -4,10 +4,13 @@ import { getKanaDeck, getKanaRowKey } from "../lib/kana";
 export default function HomeScreen({
 	openSetup,
 	startDirectSrsSession,
+	startGuidedLearning,
 	currentUser,
 	userSummary,
 	isLoadingSummary,
-	goLibrary
+	goLibrary,
+	fetchUserSummary,
+	errorMsg
 }) {
 	const { t, tNode, tWithVars } = useLanguage();
 
@@ -25,6 +28,7 @@ export default function HomeScreen({
 
 	const jlptLevels = ['n5', 'n4', 'n3', 'n2', 'n1'];
 	const dueCount = userSummary?.due_count || 0;
+	const isAllKanaLearned = (userSummary?.all_kana_stats?.length || 0) >= 142;
 
 	return (
 		<div className="flex flex-col w-full py-2 animate-fade-in lg:py-6">
@@ -55,34 +59,83 @@ export default function HomeScreen({
 
 			{/* Main Action Area */}
 			<div className="grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-4 gap-8 mb-16">
+				{/* PRIMARY: GUIDED LEARNING */}
 				<div className="lg:col-span-2 xl:col-span-3 relative">
-					<div className="h-full min-h-[340px] rounded-[3rem] p-8 md:p-12 border border-indigo-200/50 dark:border-indigo-800/30 bg-gradient-to-br from-indigo-500 via-indigo-600 to-purple-700 text-white shadow-2xl shadow-indigo-500/20 overflow-hidden group">
+					<div className={`h-full min-h-[340px] rounded-[3rem] p-8 md:p-12 border transition-all duration-700 overflow-hidden group ${isAllKanaLearned ? "bg-gradient-to-br from-emerald-500 via-teal-600 to-cyan-700 border-emerald-200/50 dark:border-emerald-800/30 text-white shadow-2xl shadow-emerald-500/20" : "bg-gradient-to-br from-indigo-500 via-indigo-600 to-purple-700 border-indigo-200/50 dark:border-indigo-800/30 text-white shadow-2xl shadow-indigo-500/20"}`}>
 						<div className="absolute top-0 right-0 p-12 opacity-20 group-hover:scale-110 transition-transform duration-700 pointer-events-none transform rotate-12">
-							<span className="text-[12rem] md:text-[14rem] leading-none select-none">📚</span>
+							<span className="text-[12rem] md:text-[14rem] leading-none select-none">{isAllKanaLearned ? "🎓" : "⛩️"}</span>
 						</div>
 
 						<div className="relative z-10 flex flex-col h-full justify-between gap-10 text-left">
 							<div>
 								<span className="px-4 py-1.5 rounded-full bg-white/20 backdrop-blur-md text-xs font-black uppercase tracking-widest mb-6 inline-block">
-									{dueCount > 0 ? tNode('home.readyForReview') : tNode('home.allCaughtUp')}
+									{isAllKanaLearned ? "MAÎTRISE COMPLÈTE" : tNode('home.nextBatchReady')}
 								</span>
 								<h2 className="text-4xl md:text-5xl lg:text-6xl font-black mb-6 leading-tight max-w-2xl">
-									{dueCount > 0
-										? tWithVars('home.reviewTask', { count: dueCount })
-										: tNode('home.allCaughtUpDesc')}
+									{isAllKanaLearned ? "Tous les Kana appris !" : tNode('home.guidedPathTitle')}
 								</h2>
+								<p className="text-lg md:text-xl font-medium opacity-90 max-w-xl">
+									{isAllKanaLearned ? "Félicitations, vous avez débloqué tous les éléments ! Continuez vos révisions pour ancrer ces connaissances." : tNode('home.guidedPathDesc')}
+								</p>
+								{errorMsg && !isAllKanaLearned && (
+									<div className="mt-6 px-5 py-3 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 text-white font-bold flex items-center gap-3 animate-shake">
+										<svg className="w-5 h-5 text-rose-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+											<path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+										</svg>
+										{errorMsg}
+									</div>
+								)}
 							</div>
 
-							<button
-								type="button"
-								onClick={() => startDirectSrsSession()}
-								className="self-start px-10 py-5 bg-white text-indigo-600 font-black text-xl rounded-2xl shadow-2xl hover:scale-105 hover:shadow-white/20 active:scale-95 transition-all duration-300 flex items-center gap-4 group/btn"
-							>
-								<svg className="w-6 h-6 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-									<path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-								</svg>
-								{dueCount > 0 ? t('home.startReview') : t('home.continueLearning')}
-							</button>
+							{!isAllKanaLearned ? (
+								<button
+									type="button"
+									onClick={() => startGuidedLearning()}
+									className="self-start px-10 py-5 bg-white text-indigo-600 font-black text-xl rounded-2xl shadow-2xl hover:scale-105 hover:shadow-white/20 active:scale-95 transition-all duration-300 flex items-center gap-4 group/btn"
+								>
+									<svg className="w-6 h-6 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+										<path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+									</svg>
+									{t('home.startGuidedLearning')}
+								</button>
+							) : (
+								<div className="flex items-center gap-4 text-white/80 font-black text-xl uppercase tracking-widest bg-white/10 backdrop-blur-sm self-start px-8 py-4 rounded-2xl border border-white/20">
+									<svg className="w-6 h-6 text-emerald-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+										<path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+									</svg>
+									Aucun élément à apprendre
+								</div>
+							)}
+						</div>
+					</div>
+				</div>
+
+				{/* SECONDARY: SRS REVIEWS */}
+				<div className="relative">
+					<div className={`h-full rounded-[3rem] p-8 border transition-all duration-300 ${dueCount > 0 ? "bg-white dark:bg-slate-800 border-indigo-100 dark:border-slate-700 shadow-xl" : "bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 opacity-60"}`}>
+						<div className="flex flex-col h-full justify-between gap-6 text-left">
+							<div>
+								<div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-6 ${dueCount > 0 ? "bg-rose-500 text-white shadow-lg shadow-rose-500/20" : "bg-slate-200 dark:bg-slate-700 text-slate-400"}`}>
+									<svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+										<path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+									</svg>
+								</div>
+								<h3 className="text-2xl font-black text-slate-800 dark:text-white mb-2">
+									{dueCount > 0 ? tWithVars('home.reviewTask', { count: dueCount }) : t('home.allCaughtUp')}
+								</h3>
+								<p className="text-sm text-slate-500 dark:text-slate-400 font-medium leading-relaxed">
+									{dueCount > 0 ? "Consolidez votre mémoire sur les éléments déjà appris." : "Toutes vos révisions sont terminées pour le moment."}
+								</p>
+							</div>
+
+							{dueCount > 0 && (
+								<button
+									onClick={() => startDirectSrsSession()}
+									className="w-full py-4 bg-slate-100 dark:bg-slate-700 hover:bg-indigo-600 hover:text-white dark:hover:bg-indigo-600 text-slate-600 dark:text-slate-300 font-black text-sm rounded-xl transition-all active:scale-95"
+								>
+									{t('home.startReview')}
+								</button>
+							)}
 						</div>
 					</div>
 				</div>

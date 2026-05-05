@@ -290,7 +290,10 @@ export default function LibraryScreen({ goHome, goPlayer, currentUser }) {
 							className="group relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[2.5rem] overflow-hidden transition-all duration-500 hover:shadow-2xl hover:shadow-indigo-500/10 hover:-translate-y-2 flex flex-col"
 						>
 							{/* Card Media Preview */}
-							<div className="relative h-48 bg-slate-200 dark:bg-slate-800 overflow-hidden">
+							<div 
+								onClick={() => goPlayer(session.id)}
+								className="relative h-48 bg-slate-200 dark:bg-slate-800 overflow-hidden cursor-pointer"
+							>
 								{session.thumbnail_filename ? (
 									<img
 										src={`/api/media/thumbnails/${encodeURIComponent(session.thumbnail_filename)}`}
@@ -321,7 +324,10 @@ export default function LibraryScreen({ goHome, goPlayer, currentUser }) {
 
 							{/* Content */}
 							<div className="p-8 flex flex-col flex-1">
-								<h3 className="text-xl font-black text-slate-800 dark:text-white mb-4 line-clamp-2 leading-tight min-h-[3.5rem]">
+								<h3 
+									onClick={() => goPlayer(session.id)}
+									className="text-xl font-black text-slate-800 dark:text-white mb-4 line-clamp-2 leading-tight min-h-[3.5rem] cursor-pointer hover:text-indigo-600 transition-colors"
+								>
 									{session.title}
 								</h3>
 

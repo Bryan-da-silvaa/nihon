@@ -46,6 +46,7 @@ export default function useKanaEngine() {
       if (user.last_setup_selection) setSelectedKana(user.last_setup_selection);
       if (user.dark_mode !== undefined) setIsDarkMode(Boolean(user.dark_mode));
       if (user.language) changeLanguage(user.language);
+      if (user.kanji_per_page) setKanjiPerPage(user.kanji_per_page);
     } else {
       localStorage.removeItem("nihon_user");
     }
@@ -71,12 +72,42 @@ export default function useKanaEngine() {
   const [isRevisionPhase, setIsRevisionPhase] = useState(false);
   const [sessionResults, setSessionResults] = useState({ score: 0, total: 0 });
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const [kanjiPerPage, setKanjiPerPage] = useState(100);
 
   const [currentList, setCurrentList] = useState([]);
   const [score, setScore] = useState(0);
   const [answers, setAnswers] = useState({});
   const [status, setStatus] = useState({});
   const [gameStartTime, setGameStartTime] = useState(null);
+  const [isGuidedMode, setIsGuidedMode] = useState(false);
+
+  const startGuidedLearning = useCallback(async () => {
+    if (!currentUser) return;
+    setErrorMsg(null);
+    setIsLoadingSummary(true);
+    try {
+      const res = await fetch(`/api/kana/next-learning?userId=${currentUser.id}`);
+      const data = await res.json();
+      if (res.ok && data.nextItems && data.nextItems.length > 0) {
+        setSetupMode(data.mode || 'hiragana');
+        setCurrentList(data.nextItems);
+        setIsGuidedMode(true);
+        setScore(0);
+        setAnswers({});
+        setStatus({});
+        setScreen("game");
+        setGameStartTime(Date.now());
+        setTimeLeft(timeLimit);
+      } else if (data.nextItems && data.nextItems.length === 0) {
+        setErrorMsg("Félicitations ! Vous avez appris tous les kana.");
+      }
+    } catch (err) {
+      console.error(err);
+      setErrorMsg("Erreur lors du lancement de l'apprentissage guidé.");
+    } finally {
+      setIsLoadingSummary(false);
+    }
+  }, [currentUser]);
 
   // Sync preferences to DB
   useEffect(() => {
@@ -96,13 +127,14 @@ export default function useKanaEngine() {
           last_setup_mode: setupMode,
           last_setup_selection: selectedKana,
           dark_mode: isDarkMode,
-          language: language
+          language: language,
+          kanji_per_page: kanjiPerPage
         })
       });
     }, 2000); // 2s debounce to avoid too many writes
     
     return () => clearTimeout(timer);
-  }, [learningStrategy, sessionIntensity, requireVoiceAnswer, useTimer, timeLimit, setupMode, selectedKana, isDarkMode, language, currentUser?.id, isAuthLoaded]);
+  }, [learningStrategy, sessionIntensity, requireVoiceAnswer, useTimer, timeLimit, setupMode, selectedKana, isDarkMode, language, kanjiPerPage, currentUser?.id, isAuthLoaded]);
 
   // Dark mode effect
   useEffect(() => {
@@ -132,6 +164,7 @@ export default function useKanaEngine() {
         if (res.ok) {
           setLearningStrategy(data.learning_strategy || DEFAULT_LEARNING_STRATEGY);
           setSessionIntensity(data.session_intensity || "standard");
+          if (data.kanji_per_page) setKanjiPerPage(data.kanji_per_page);
         }
       } catch (error) {
         console.error("Unable to load learning preferences", error);
@@ -206,24 +239,30 @@ export default function useKanaEngine() {
     return session;
   };
 
-  const finishGame = () => {
+  const finishGame = useCallback(() => {
+    if (screen !== "game") return;
+
     if (!isRevisionPhase) {
+      // End of main session: save results
       setSessionResults({ score, total: currentList.length });
       saveScoreToDb(score);
       
       const mistakes = currentList.filter((_, idx) => status[idx] !== "correct");
       if (mistakes.length > 0) {
+        // Switch to revision phase
         setCurrentList(mistakes);
         setStatus({});
         setAnswers({});
         setIsRevisionPhase(true);
+        // Important: we stay on screen="game" but with a new list
         return;
       }
     }
     
+    // End of main session (no mistakes) or end of revision phase
     setScreen("score");
     setIsRevisionPhase(false);
-  };
+  }, [screen, isRevisionPhase, score, currentList, status, saveScoreToDb]);
 
   useGameTimer(screen, useTimer, timeLeft, setTimeLeft, finishGame);
   useGameCompletion(screen, currentList, status, finishGame);
@@ -245,25 +284,26 @@ export default function useKanaEngine() {
     let generatedList = [];
     const scope = normalizeKanaMode(finalSetupMode);
     const limit = resolveSessionLimit(finalIntensity, finalSelected.length);
-    const includeParam = encodeURIComponent(finalSelected.join(","));
 
     if (!currentUser) {
       setErrorMsg("errors.srsNotLoggedIn");
       return;
     }
-
     try {
+      const includeParam = encodeURIComponent(finalSelected.join(","));
       const res = await fetch(`/api/kana/srs?userId=${currentUser.id}&limit=${limit}&scope=${scope}&strategy=${finalStrategy}&include=${includeParam}`);
       const data = await res.json();
-
-      if (res.ok && Array.isArray(data.cards) && data.cards.length > 0) {
+      if (res.ok && Array.isArray(data.cards)) {
         generatedList = data.cards;
       } else {
-        generatedList = buildFallbackSession(finalSetupMode, limit).filter((item) => finalSelected.includes(item.kana));
+        // Fallback: use only selected kana
+        const deck = getKanaDeck(finalSetupMode).filter(k => finalSelected.includes(k.kana));
+        generatedList = shuffleDeck(deck).slice(0, limit);
       }
     } catch (err) {
       console.error(err);
-      generatedList = buildFallbackSession(finalSetupMode, limit).filter((item) => finalSelected.includes(item.kana));
+      const deck = getKanaDeck(finalSetupMode).filter(k => finalSelected.includes(k.kana));
+      generatedList = shuffleDeck(deck).slice(0, limit);
     }
 
     if (generatedList.length === 0) {
@@ -394,13 +434,21 @@ export default function useKanaEngine() {
     setScreen("profile");
   };
 
-  const goAdmin = () => {
-    setScreen("admin");
-  };
-
-  const goWhisper = () => {
-    setScreen("admin_whisper");
-  };
+   const goAdmin = () => {
+     if (currentUser && currentUser.is_admin) {
+       setScreen("admin");
+     } else {
+       setScreen("home");
+     }
+   };
+ 
+   const goWhisper = () => {
+     if (currentUser && currentUser.is_admin) {
+       setScreen("admin_whisper");
+     } else {
+       setScreen("home");
+     }
+   };
 
   const goLibrary = () => {
     setScreen("library");
@@ -409,6 +457,10 @@ export default function useKanaEngine() {
   const goPlayer = (sessionId) => {
     setSelectedSessionId(sessionId);
     setScreen("player");
+  };
+
+  const goKanji = () => {
+    setScreen("kanji");
   };
 
   const logout = () => {
@@ -436,10 +488,12 @@ export default function useKanaEngine() {
     setupMode, availableKana, selectedKana, toggleKana, toggleKanaLine, toggleMultipleKanaLines, selectContrastPairs, selectAllKana, clearKanaSelection,
     learningStrategy, setLearningStrategy, sessionIntensity, setSessionIntensity,
     enableKanaAudio, setEnableKanaAudio, requireVoiceAnswer, setRequireVoiceAnswer,
-    currentList, score, answers, setAnswers, status, inputsRef,
-    startGame, startDirectSrsSession, openSetup, checkAnswer, markIncorrect, goHome, goProfile, goAdmin, goWhisper, goLibrary, goPlayer,
+    currentList, setCurrentList, score, answers, setAnswers, status, inputsRef,
+    startGame, startDirectSrsSession, openSetup, checkAnswer, markIncorrect, goHome, goProfile, goAdmin, goWhisper, goLibrary, goPlayer, goKanji,
     selectedSessionId, maxWidthClass, profileTab, isRevisionPhase, sessionResults,
     isDarkMode, setIsDarkMode,
-    userSummary, isLoadingSummary, fetchUserSummary
+    kanjiPerPage, setKanjiPerPage,
+    userSummary, isLoadingSummary, fetchUserSummary,
+    isGuidedMode, startGuidedLearning
   };
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import fr from '../locales/fr.json';
 import ja from '../locales/ja.json';
 import Ruby from '../components/Ruby';
@@ -16,16 +16,15 @@ const translations = {
 export function LanguageProvider({ children }) {
   const [language, setLanguage] = useState("fr");
   const [furiganaMap, setFuriganaMap] = useState(defaultFuriganaMap);
+  const [systemSettings, setSystemSettings] = useState({ defaultAvatar: "" });
 
   useEffect(() => {
     const savedLang = localStorage.getItem("app_lang");
     if (savedLang && translations[savedLang]) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setLanguage(savedLang);
     }
   }, []);
 
-  // Load fresh furigana data from API
   const refreshFurigana = useCallback(async () => {
     try {
       const res = await fetch('/api/furigana');
@@ -36,34 +35,42 @@ export function LanguageProvider({ children }) {
     } catch (_) {}
   }, []);
 
-  // Fetch fresh furigana on mount
+  const refreshSystemSettings = useCallback(async () => {
+    try {
+      const res = await fetch('/api/settings');
+      if (res.ok) {
+        const data = await res.json();
+        setSystemSettings(data || { defaultAvatar: "" });
+      }
+    } catch (_) {}
+  }, []);
+
   useEffect(() => {
     refreshFurigana();
-  }, [refreshFurigana]);
+    refreshSystemSettings();
+  }, [refreshFurigana, refreshSystemSettings]);
 
-  const changeLanguage = (newLang) => {
+  const changeLanguage = useCallback((newLang) => {
     if (translations[newLang]) {
       setLanguage(newLang);
       localStorage.setItem('app_lang', newLang);
     }
-  };
+  }, []);
 
-  // Helper function to get nested translation keys like 'home.title'
-  const t = (path) => {
+  const t = useCallback((path) => {
     const keys = path.split('.');
     let result = translations[language];
     for (const key of keys) {
       if (result && result[key] !== undefined) {
         result = result[key];
       } else {
-        return path; // Return the path itself if not found
+        return path;
       }
     }
     return result;
-  };
+  }, [language]);
 
-  // Helper function for translations with variables like 'score.resultText'
-  const tWithVars = (path, vars) => {
+  const tWithVars = useCallback((path, vars) => {
     let text = t(path);
     if (typeof text === 'string') {
       Object.keys(vars).forEach(key => {
@@ -71,54 +78,46 @@ export function LanguageProvider({ children }) {
       });
     }
     return text;
-  };
+  }, [t]);
 
-  // Helper to check if string contains kanji
-  const hasKanji = (str) => /[\u4E00-\u9FFF]/.test(str);
-
-  // Return a React node where kanji is converted to <Ruby /> components
-  // Uses greedy left-to-right matching on furiganaMap
-  // Only adds furigana for words that contain kanji
-  const tNode = (path) => {
+  const tNode = useCallback((path) => {
     const raw = t(path);
     if (language !== 'ja' || typeof raw !== 'string') return raw;
 
-    const mapKeys = Object.keys(furiganaMap || {}).filter(key => hasKanji(key));
-    if (mapKeys.length === 0) return raw;
-
-    // Sort by descending length for greedy matching (longest first)
-    mapKeys.sort((a, b) => b.length - a.length);
-
     const parts = [];
     let i = 0;
-
     while (i < raw.length) {
       let matched = false;
-
-      // Try to match each kanji word starting at position i
-      for (const key of mapKeys) {
-        if (raw.substr(i, key.length) === key) {
-          // Found a match - add Ruby component
-          parts.push(<Ruby key={`${i}-${key}`} base={key} reading={furiganaMap[key]} />);
-          i += key.length;
+      for (const kanji in furiganaMap) {
+        if (raw.substring(i).startsWith(kanji)) {
+          parts.push(<Ruby key={i} base={kanji} reading={furiganaMap[kanji]} />);
+          i += kanji.length;
           matched = true;
           break;
         }
       }
-
-      // If no match, add single character as text
       if (!matched) {
         parts.push(raw[i]);
         i++;
       }
     }
 
-    // Return either single element or fragment with multiple elements
     return parts.length === 0 ? raw : parts.length === 1 ? parts[0] : <>{parts}</>;
-  };
+  }, [language, t, furiganaMap]);
+
+  const contextValue = useMemo(() => ({
+    language,
+    changeLanguage,
+    t,
+    tWithVars,
+    tNode,
+    refreshFurigana,
+    systemSettings,
+    refreshSystemSettings
+  }), [language, changeLanguage, t, tWithVars, tNode, refreshFurigana, systemSettings, refreshSystemSettings]);
 
   return (
-    <LanguageContext.Provider value={{ language, changeLanguage, t, tWithVars, tNode, refreshFurigana }}>
+    <LanguageContext.Provider value={contextValue}>
       {children}
     </LanguageContext.Provider>
   );

@@ -2,11 +2,13 @@ import { NextResponse } from 'next/server';
 import { getSystemConfig, saveSystemConfig } from '../../../lib/db';
 
 const defaultConfig = {
-  whisperCommand: "whisper",
-  whisperPath: "",
-  whisperModel: "base",
-  ytdlpCommand: "yt-dlp",
-  ffmpegCommand: "ffmpeg"
+	whisperCommand: "whisper",
+	whisperPath: "",
+	whisperModel: "base",
+	ytdlpCommand: "yt-dlp",
+	ffmpegCommand: "ffmpeg",
+	defaultAvatar: "",
+	defaultBanner: ""
 };
 
 export async function GET() {

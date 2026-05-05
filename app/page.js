@@ -11,6 +11,7 @@ import AdminScreen from "../components/AdminScreen";
 import WhisperScreen from "../components/WhisperScreen";
 import LibraryScreen from "../components/LibraryScreen";
 import PlayerScreen from "../components/PlayerScreen";
+import KanjiScreen from "../components/KanjiScreen";
 import useKanaEngine from "../hooks/useKanaEngine";
 import { useLanguage } from "../context/LanguageContext";
 
@@ -23,11 +24,12 @@ export default function Home() {
 		setupMode, availableKana, selectedKana, toggleKana, toggleKanaLine, toggleMultipleKanaLines, selectContrastPairs, selectAllKana, clearKanaSelection,
 		learningStrategy, sessionIntensity, setSessionIntensity,
 		enableKanaAudio, setEnableKanaAudio, requireVoiceAnswer, setRequireVoiceAnswer,
-		currentList, score, answers, setAnswers, status, inputsRef,
-		startGame, startDirectSrsSession, openSetup, checkAnswer, markIncorrect, goHome, goProfile, goAdmin, goWhisper, goLibrary, goPlayer,
+		currentList, setCurrentList, score, answers, setAnswers, status, inputsRef,
+		startGame, startDirectSrsSession, openSetup, checkAnswer, markIncorrect, goHome, goProfile, goAdmin, goWhisper, goLibrary, goPlayer, goKanji,
 		selectedSessionId, maxWidthClass, profileTab, isRevisionPhase, sessionResults,
-		isDarkMode, setIsDarkMode,
-		userSummary, isLoadingSummary
+		isDarkMode, setIsDarkMode, kanjiPerPage, setKanjiPerPage,
+		userSummary, isLoadingSummary, fetchUserSummary,
+		startGuidedLearning, isGuidedMode
 	} = useKanaEngine();
 
 	// Screens that should NOT be wrapped in the standard glass container
@@ -40,6 +42,7 @@ export default function Home() {
 					goProfile={goProfile}
 					goAdmin={goAdmin}
 					goLibrary={goLibrary}
+					goKanji={goKanji}
 					goHome={goHome}
 					screen={screen}
 					currentUser={currentUser}
@@ -62,9 +65,16 @@ export default function Home() {
 						<HomeScreen
 							openSetup={openSetup}
 							startDirectSrsSession={startDirectSrsSession}
+							startGuidedLearning={startGuidedLearning}
 							userSummary={userSummary}
 							isLoadingSummary={isLoadingSummary}
 							currentUser={currentUser}
+							isDarkMode={isDarkMode}
+							setIsDarkMode={setIsDarkMode}
+							kanjiPerPage={kanjiPerPage}
+							setKanjiPerPage={setKanjiPerPage}
+							fetchUserSummary={fetchUserSummary}
+							errorMsg={errorMsg}
 						/>
 					)}
 
@@ -98,10 +108,12 @@ export default function Home() {
 
 					{screen === "game" && (
 						<GameScreen
+							key={isRevisionPhase ? "revision" : "game"}
 							goHome={goHome}
 							useTimer={useTimer}
 							timeLeft={timeLeft}
 							currentList={currentList}
+							setCurrentList={setCurrentList}
 							status={status}
 							answers={answers}
 							setAnswers={setAnswers}
@@ -112,13 +124,14 @@ export default function Home() {
 							requireVoiceAnswer={requireVoiceAnswer}
 							setRequireVoiceAnswer={setRequireVoiceAnswer}
 							isRevisionPhase={isRevisionPhase}
+							isGuidedMode={isGuidedMode}
 						/>
 					)}
 
 					{screen === "score" && (
 						<ScoreScreen
-							score={sessionResults.score}
-							currentListLength={sessionResults.total}
+							score={sessionResults.score || 0}
+							currentListLength={sessionResults.total || 1}
 							goHome={goHome}
 						/>
 					)}
@@ -131,14 +144,17 @@ export default function Home() {
 							setCurrentUser={setCurrentUser}
 							initialTab={profileTab}
 							startDirectSrsSession={startDirectSrsSession}
+							kanjiPerPage={kanjiPerPage}
+							setKanjiPerPage={setKanjiPerPage}
+							fetchUserSummary={fetchUserSummary}
 						/>
 					)}
 
-					{screen === "admin" && (
+					{screen === "admin" && !!currentUser.is_admin && (
 						<AdminScreen goHome={goHome} goWhisper={goWhisper} currentUser={currentUser} />
 					)}
 
-					{screen === "admin_whisper" && (
+					{screen === "admin_whisper" && !!currentUser.is_admin && (
 						<WhisperScreen goAdmin={goAdmin} />
 					)}
 
@@ -148,6 +164,10 @@ export default function Home() {
 
 					{screen === "player" && (
 						<PlayerScreen sessionId={selectedSessionId} goLibrary={goLibrary} currentUser={currentUser} />
+					)}
+					
+					{screen === "kanji" && (
+						<KanjiScreen currentUser={currentUser} kanjiPerPage={kanjiPerPage} />
 					)}
 				</div>
 			)}

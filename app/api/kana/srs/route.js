@@ -153,24 +153,29 @@ export async function GET(request) {
     const targets = getStrategyTargets(strategy, limit);
 
     const sessionCards = [];
-    sessionCards.push(...due.slice(0, targets.due));
 
-    const remainingAfterDue = limit - sessionCards.length;
-    if (!targets.strict) {
-      sessionCards.push(...weak.slice(0, Math.min(targets.weak, remainingAfterDue)));
+    // 1. Fill with Due cards (up to limit)
+    sessionCards.push(...due.slice(0, limit));
+
+    // 2. Fill with Weak cards (up to limit)
+    if (!targets.strict && sessionCards.length < limit) {
+      const needed = limit - sessionCards.length;
+      sessionCards.push(...weak.slice(0, needed));
     }
 
-    const remainingAfterWeak = limit - sessionCards.length;
-    if (!targets.strict) {
-      sessionCards.push(...fresh.slice(0, Math.min(targets.fresh, remainingAfterWeak)));
+    // 3. Fill with Fresh cards (up to limit)
+    if (!targets.strict && sessionCards.length < limit) {
+      const needed = limit - sessionCards.length;
+      sessionCards.push(...fresh.slice(0, needed));
     }
 
-    const remainingAfterFresh = limit - sessionCards.length;
-    if (!targets.strict) {
-      sessionCards.push(...mastered.slice(0, Math.max(0, remainingAfterFresh)));
+    // 4. Fill with Mastered cards (up to limit)
+    if (!targets.strict && sessionCards.length < limit) {
+      const needed = limit - sessionCards.length;
+      sessionCards.push(...mastered.slice(0, needed));
     }
 
-    const finalCards = sessionCards.slice(0, limit);
+    const finalCards = sessionCards;
 
     const summary = {
       scope,

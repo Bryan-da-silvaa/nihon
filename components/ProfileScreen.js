@@ -2,9 +2,10 @@ import { useState, useEffect, useCallback } from "react";
 import { useLanguage } from "../context/LanguageContext";
 import Ruby from "./Ruby";
 import { getKanaDeck, getKanaColumnIndex, getKanaRowKey } from "../lib/kana";
+import { getLocalAvatar } from "../lib/avatars";
 
-export default function ProfileScreen({ goHome, currentUser, setCurrentUser, initialTab = "overview", startDirectSrsSession }) {
-	const { t, tNode, tWithVars } = useLanguage();
+export default function ProfileScreen({ goHome, currentUser, setCurrentUser, initialTab = "overview", startDirectSrsSession, kanjiPerPage, setKanjiPerPage, fetchUserSummary }) {
+	const { t, tNode, tWithVars, systemSettings } = useLanguage();
 	const [profile, setProfile] = useState(null);
 	const [loading, setLoading] = useState(true);
 	const [editing, setEditing] = useState(false);
@@ -21,6 +22,11 @@ export default function ProfileScreen({ goHome, currentUser, setCurrentUser, ini
 	const [showClearDataModal, setShowClearDataModal] = useState(false);
 	const [activeTab, setActiveTab] = useState(initialTab);
 	const [masteryScript, setMasteryScript] = useState("hiragana");
+
+	const [oldPassword, setOldPassword] = useState("");
+	const [newPassword, setNewPassword] = useState("");
+	const [confirmPassword, setConfirmPassword] = useState("");
+	const [isChangingPassword, setIsChangingPassword] = useState(false);
 
 	const strategyOptions = [
 		{ id: "balanced", label: t("home.focusBalanced"), desc: t("home.focusBalancedDesc") },
@@ -42,6 +48,7 @@ export default function ProfileScreen({ goHome, currentUser, setCurrentUser, ini
 				setNewBanner(data.banner || null);
 				setLearningStrategy(data.learning_strategy || "balanced");
 				setSessionIntensity(data.session_intensity || "standard");
+				if (data.kanji_per_page) setKanjiPerPage(data.kanji_per_page);
 			}
 		} catch (err) {
 			console.error(err);
@@ -134,6 +141,47 @@ export default function ProfileScreen({ goHome, currentUser, setCurrentUser, ini
 		}
 	};
 
+	const changePassword = async (e) => {
+		e.preventDefault();
+		if (newPassword !== confirmPassword) {
+			setErrorMsg("Les mots de passe ne correspondent pas.");
+			return;
+		}
+		if (newPassword.length < 6) {
+			setErrorMsg("Le nouveau mot de passe doit faire au moins 6 caractères.");
+			return;
+		}
+
+		setIsChangingPassword(true);
+		setErrorMsg("");
+		setSuccessMsg("");
+
+		try {
+			const res = await fetch("/api/profile/password", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({
+					userId: currentUser.id,
+					oldPassword,
+					newPassword
+				}),
+			});
+			const data = await res.json();
+			if (res.ok) {
+				setSuccessMsg("Mot de passe modifié avec succès !");
+				setOldPassword("");
+				setNewPassword("");
+				setConfirmPassword("");
+			} else {
+				setErrorMsg(data.error || "Erreur lors du changement.");
+			}
+		} catch (err) {
+			setErrorMsg("Erreur réseau.");
+		} finally {
+			setIsChangingPassword(false);
+		}
+	};
+
 	if (loading) return (
 		<div className="flex flex-col items-center justify-center py-20 gap-4">
 			<div className="w-12 h-12 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin"></div>
@@ -157,10 +205,10 @@ export default function ProfileScreen({ goHome, currentUser, setCurrentUser, ini
 			<div className="relative -mx-8 md:-mx-12 -mt-8 md:-mt-12 mb-12 rounded-t-[3rem] overflow-hidden">
 				{/* Banner Image */}
 				<div className="absolute inset-0 z-0">
-					{(editing ? newBanner : profile.banner) ? (
+					{(editing ? (newBanner || profile.banner || systemSettings.defaultBanner) : (profile.banner || systemSettings.defaultBanner)) ? (
 						<>
 							<img
-								src={editing ? newBanner : profile.banner}
+								src={editing ? (newBanner || profile.banner || systemSettings.defaultBanner) : (profile.banner || systemSettings.defaultBanner)}
 								alt="Banner"
 								className="w-full h-full object-cover"
 							/>
@@ -193,7 +241,7 @@ export default function ProfileScreen({ goHome, currentUser, setCurrentUser, ini
 						<div className="w-32 h-32 md:w-40 md:h-40 rounded-full p-1.5 bg-gradient-to-tr from-indigo-500 to-purple-600 shadow-2xl shadow-indigo-500/20">
 							<div className="w-full h-full rounded-full overflow-hidden bg-slate-100 dark:bg-slate-800 border-4 border-white dark:border-slate-900">
 								<img
-									src={editing ? (newAvatar || profile.avatar || "https://ui-avatars.com/api/?name=" + profile.username) : (profile.avatar || "https://ui-avatars.com/api/?name=" + profile.username)}
+									src={editing ? (newAvatar || profile.avatar || systemSettings.defaultAvatar || getLocalAvatar(profile.username)) : (profile.avatar || systemSettings.defaultAvatar || getLocalAvatar(profile.username))}
 									alt="Profile"
 									className="w-full h-full object-cover"
 								/>
@@ -263,13 +311,17 @@ export default function ProfileScreen({ goHome, currentUser, setCurrentUser, ini
 
 			{/* Tab Navigation - Moved Below Banner */}
 			<div className="flex gap-8 mb-8 border-b border-slate-100 dark:border-slate-800 overflow-x-auto no-scrollbar">
-				{["overview", "mastery", "history", "preferences"].map(tab => (
+				{["overview", "mastery", "history", "preferences", "security"].map(tab => (
 					<button
 						key={tab}
-						onClick={() => setActiveTab(tab)}
+						onClick={() => {
+							setActiveTab(tab);
+							setErrorMsg("");
+							setSuccessMsg("");
+						}}
 						className={`pb-4 px-1 font-black text-xs uppercase tracking-[0.2em] transition-all border-b-4 ${activeTab === tab ? "border-indigo-600 text-indigo-600 dark:text-indigo-400" : "border-transparent text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"}`}
 					>
-						{tNode(`profile.tab${tab.charAt(0).toUpperCase() + tab.slice(1)}`)}
+						{tab === "security" ? "Sécurité" : tNode(`profile.tab${tab.charAt(0).toUpperCase() + tab.slice(1)}`)}
 					</button>
 				))}
 			</div>
@@ -452,8 +504,31 @@ export default function ProfileScreen({ goHome, currentUser, setCurrentUser, ini
 							<button onClick={saveProfile} className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black shadow-lg shadow-indigo-500/20 hover:scale-105 transition-all">Sauvegarder les préférences</button>
 						</div>
 
-						{/* Data Management */}
+						{/* Kanji Display Preference */}
 						<div className="space-y-6">
+							<h4 className="text-xl font-black text-slate-800 dark:text-white flex items-center gap-3">
+								<span className="w-8 h-8 rounded-xl bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center text-amber-600">🏮</span>
+								Affichage des Kanji
+							</h4>
+							<div className="p-8 rounded-[2rem] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-4">
+								<p className="text-sm font-bold text-slate-400 uppercase tracking-widest px-1">Kanjis par page</p>
+								<div className="grid grid-cols-2 gap-3">
+									{[50, 100, 250, 500].map(val => (
+										<button
+											key={val}
+											onClick={() => setKanjiPerPage(val)}
+											className={`py-4 rounded-2xl font-black transition-all border ${kanjiPerPage === val ? "bg-indigo-600 text-white border-indigo-600 shadow-lg shadow-indigo-500/20" : "bg-slate-50 dark:bg-slate-800 text-slate-500 border-transparent hover:bg-slate-100 dark:hover:bg-slate-700"}`}
+										>
+											{val}
+										</button>
+									))}
+								</div>
+								<p className="text-[10px] text-slate-500 font-medium italic text-center mt-4">
+									Un nombre élevé peut ralentir le chargement initial de la grille.
+								</p>
+							</div>
+
+							{/* Data Management moved below */}
 							<h4 className="text-xl font-black text-slate-800 dark:text-white flex items-center gap-3">
 								<span className="w-8 h-8 rounded-xl bg-rose-100 dark:bg-rose-900/40 flex items-center justify-center text-rose-600">⚠️</span>
 								Zone de Danger
@@ -468,6 +543,75 @@ export default function ProfileScreen({ goHome, currentUser, setCurrentUser, ini
 									Effacer mes données d'apprentissage
 								</button>
 							</div>
+						</div>
+					</div>
+				)}
+
+				{activeTab === "security" && (
+					<div className="max-w-2xl mx-auto w-full animate-fade-in">
+						<div className="bg-white dark:bg-slate-900 p-8 md:p-12 rounded-[3rem] border border-slate-200 dark:border-slate-800 shadow-2xl space-y-10">
+							<div className="text-center">
+								<div className="w-16 h-16 rounded-2xl bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center text-3xl mx-auto mb-4">🔐</div>
+								<h3 className="text-3xl font-black text-slate-800 dark:text-white mb-2">Changer le mot de passe</h3>
+								<p className="text-slate-500 dark:text-slate-400 font-medium">Assurez la sécurité de votre compte Nihon.</p>
+							</div>
+
+							{(errorMsg || successMsg) && (
+								<div className={`p-6 rounded-2xl font-bold text-center animate-in slide-in-from-top-2 ${errorMsg ? "bg-rose-50 text-rose-600 border border-rose-100" : "bg-emerald-50 text-emerald-600 border border-emerald-100"}`}>
+									{errorMsg || successMsg}
+								</div>
+							)}
+
+							<form onSubmit={changePassword} className="space-y-6">
+								<div className="space-y-2">
+									<label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-4">Ancien mot de passe</label>
+									<input
+										type="password"
+										required
+										value={oldPassword}
+										onChange={(e) => setOldPassword(e.target.value)}
+										className="w-full px-8 py-5 rounded-2xl bg-slate-50 dark:bg-slate-800 border-2 border-transparent focus:border-indigo-500 transition-all font-bold text-slate-700 dark:text-white outline-none"
+										placeholder="••••••••"
+									/>
+								</div>
+
+								<div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+									<div className="space-y-2">
+										<label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-4">Nouveau mot de passe</label>
+										<input
+											type="password"
+											required
+											value={newPassword}
+											onChange={(e) => setNewPassword(e.target.value)}
+											className="w-full px-8 py-5 rounded-2xl bg-slate-50 dark:bg-slate-800 border-2 border-transparent focus:border-indigo-500 transition-all font-bold text-slate-700 dark:text-white outline-none"
+											placeholder="••••••••"
+										/>
+									</div>
+									<div className="space-y-2">
+										<label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-4">Confirmation</label>
+										<input
+											type="password"
+											required
+											value={confirmPassword}
+											onChange={(e) => setConfirmPassword(e.target.value)}
+											className="w-full px-8 py-5 rounded-2xl bg-slate-50 dark:bg-slate-800 border-2 border-transparent focus:border-indigo-500 transition-all font-bold text-slate-700 dark:text-white outline-none"
+											placeholder="••••••••"
+										/>
+									</div>
+								</div>
+
+								<button
+									type="submit"
+									disabled={isChangingPassword}
+									className="w-full py-6 rounded-[2rem] bg-indigo-600 text-white font-black text-xl shadow-2xl shadow-indigo-500/30 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-4 disabled:opacity-50"
+								>
+									{isChangingPassword ? (
+										<div className="w-6 h-6 border-4 border-white/20 border-t-white rounded-full animate-spin"></div>
+									) : (
+										"🔒 Mettre à jour le mot de passe"
+									)}
+								</button>
+							</form>
 						</div>
 					</div>
 				)}

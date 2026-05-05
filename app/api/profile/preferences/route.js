@@ -18,7 +18,8 @@ export async function POST(request) {
       "use_timer",
       "time_limit",
       "last_setup_mode",
-      "last_setup_selection"
+      "last_setup_selection",
+      "kanji_per_page"
     ];
 
     const updates = [];

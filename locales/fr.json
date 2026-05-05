@@ -56,7 +56,11 @@
 		"startContrast": "Démarrer le Défi",
 		"foundations": "Bases & Fondations",
 		"kanjiVocab": "Kanji & Vocabulaire",
-		"immersion": "Immersion & Défis"
+		"immersion": "Immersion & Défis",
+		"startGuidedLearning": "Apprendre 5 nouveaux Kana",
+		"guidedPathTitle": "Parcours d'Apprentissage",
+		"guidedPathDesc": "Progressez étape par étape par blocs de 5 kana, avec introduction guidée et quiz de mémorisation.",
+		"nextBatchReady": "5 nouveaux éléments prêts !"
 	},
 	"setup": {
 		"title": "Configuration de Session",
@@ -127,6 +131,7 @@
 		"profileAlt": "Photo de profil",
 		"dashboard": "Tableau de Bord",
 		"library": "Bibliothèque",
+		"kanji": "Maîtrise Kanji",
 		"myProfile": "Mon Profil",
 		"logout": "Deconnexion",
 		"themeChangeTitle": "Changer de theme",
@@ -134,6 +139,12 @@
 		"langSwitchFr": "Francais",
 		"admin": "Administration",
 		"learningPreferences": "Préférences"
+	},
+	"kanji": {
+		"title": "Maîtrise des Kanji",
+		"subtitle": "Explorez et apprenez les caractères essentiels du japonais.",
+		"noKanjis": "Aucun Kanji trouvé pour ce niveau.",
+		"startReview": "Réviser mes Kanji"
 	},
 	"auth": {
 		"welcome": "Bienvenue sur Nihon",

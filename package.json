@@ -7,9 +7,11 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "generate:furigana": "node scripts/generate-furigana.js"
+    "generate:furigana": "node scripts/generate-furigana.js",
+    "import:jmdict": "node scripts/import-jmdict.mjs"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "bcryptjs": "^3.0.3",
     "dotenv": "^17.4.2",
     "kuroshiro": "^1.2.0",

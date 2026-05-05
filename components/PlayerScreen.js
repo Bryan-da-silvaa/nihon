@@ -39,42 +39,37 @@ function formatTime(seconds) {
 	return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
-const SubtitleItem = memo(({ 
-	sub, 
-	idx, 
-	activeSubIndex, 
-	tokenizedSub, 
-	romajiSub, 
-	showRomaji, 
-	isOverlay, 
-	getWordStatus, 
-	onWordClick, 
-	onJump 
+const SubtitleItem = memo(({
+	sub,
+	idx,
+	activeSubIndex,
+	tokenizedSub,
+	romajiSub,
+	showRomaji,
+	isOverlay,
+	getWordStatus,
+	onWordClick,
+	onJump
 }) => {
 	const isActive = idx === activeSubIndex;
-	
+
 	return (
 		<div
 			className={`w-full text-left p-4 rounded-2xl border transition-all duration-300 group ${isActive ? "bg-indigo-600 border-indigo-600 shadow-xl shadow-indigo-500/20 translate-x-2" : (isOverlay ? "bg-white/5 border-white/10" : "bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-800")}`}
-			style={{ 
-				contentVisibility: 'auto', 
-				containIntrinsicSize: '1px 100px' 
-			}}
 		>
 			<div className={`font-black mb-1 text-sm leading-relaxed flex flex-wrap gap-x-1.5 ${isActive ? "text-white" : (isOverlay ? "text-white" : "text-slate-800 dark:text-white")}`}>
 				{tokenizedSub ? (
 					tokenizedSub.map((token, tIdx) => {
 						const status = getWordStatus(token.b || token.w);
 						return (
-							<span 
-								key={tIdx} 
+							<span
+								key={tIdx}
 								onClick={(e) => {
 									e.stopPropagation();
 									onWordClick(token, status, e);
 								}}
-								className={`cursor-pointer rounded px-0.5 transition-all hover:bg-white/20 ${
-									status === 2 ? "text-emerald-400" : (status === 1 ? "text-amber-400" : "")
-								}`}
+								className={`cursor-pointer rounded px-0.5 transition-all hover:bg-white/20 ${status === 2 ? "text-emerald-400" : (status === 1 ? "text-amber-400" : "")
+									}`}
 							>
 								{token.w}
 							</span>
@@ -101,9 +96,49 @@ const SubtitleItem = memo(({
 	);
 });
 
+const TranscriptionList = memo(({
+	subs,
+	tokenizedSubs,
+	romajiSubs,
+	activeSubIndex,
+	showRomaji,
+	isOverlay,
+	getWordStatus,
+	onWordClick,
+	onJump,
+	containerRef
+}) => {
+	if (subs.length === 0) {
+		return <p className="text-slate-400 text-center py-20 font-bold uppercase text-[10px] tracking-widest">Aucun sous-titre disponible</p>;
+	}
+
+	return (
+		<div
+			ref={containerRef}
+			className="flex-1 overflow-y-auto space-y-3 pr-2 no-scrollbar scroll-smooth"
+		>
+			{subs.map((s, idx) => (
+				<SubtitleItem
+					key={idx}
+					sub={s}
+					idx={idx}
+					activeSubIndex={activeSubIndex}
+					tokenizedSub={tokenizedSubs[idx]}
+					romajiSub={romajiSubs[idx]}
+					showRomaji={showRomaji}
+					isOverlay={isOverlay}
+					getWordStatus={getWordStatus}
+					onWordClick={onWordClick}
+					onJump={onJump}
+				/>
+			))}
+		</div>
+	);
+});
+
 const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 2];
 
-export default function PlayerScreen({ sessionId, goLibrary, currentUser }) {
+const PlayerScreen = memo(({ sessionId, goLibrary, currentUser }) => {
 	const { t } = useLanguage();
 
 	// Data
@@ -156,13 +191,13 @@ export default function PlayerScreen({ sessionId, goLibrary, currentUser }) {
 				const res = await fetch(`/api/whisper/sessions/${sessionId}`);
 				const data = await res.json();
 				setSession(data);
-				
+
 				setSubs(parseSRT(data.subs_content));
 				setRomajiSubs(parseSRT(data.romaji_content));
 				if (data.tokenized_content) {
 					try {
-						const parsed = typeof data.tokenized_content === 'string' 
-							? JSON.parse(data.tokenized_content) 
+						const parsed = typeof data.tokenized_content === 'string'
+							? JSON.parse(data.tokenized_content)
 							: data.tokenized_content;
 						setTokenizedSubs(parsed);
 					} catch (e) {
@@ -270,7 +305,7 @@ export default function PlayerScreen({ sessionId, goLibrary, currentUser }) {
 		const x = Math.max(0, Math.min(e.clientX - rect.left, rect.width));
 		const percent = x / rect.width;
 		const time = percent * duration;
-		
+
 		// 1. Priorité absolue au mouvement (GPU accelerated)
 		if (tooltipRef.current) {
 			tooltipRef.current.style.transform = `translateX(${x}px)`;
@@ -300,7 +335,7 @@ export default function PlayerScreen({ sessionId, goLibrary, currentUser }) {
 		const x = Math.max(0, Math.min(e.clientX - rect.left, rect.width));
 		const percent = (x / rect.width) * 100;
 		const time = (x / rect.width) * duration;
-		
+
 		// 1. Mise à jour visuelle immédiate (DOM)
 		const progressFill = progressRef.current.querySelector('.progress-fill');
 		const progressThumb = progressRef.current.querySelector('.progress-thumb');
@@ -388,7 +423,7 @@ export default function PlayerScreen({ sessionId, goLibrary, currentUser }) {
 		}
 	}, [isPlaying]);
 
-	const handleWordClick = useCallback((token, status, e) => {
+	const handleWordClick = useCallback(async (token, status, e) => {
 		setSelectedWord({ ...token, status });
 		setPopupPos({ x: e.clientX, y: e.clientY });
 	}, []);
@@ -446,7 +481,7 @@ export default function PlayerScreen({ sessionId, goLibrary, currentUser }) {
 			const container = subsContainerRef.current;
 			const el = container.children[activeSubIndex];
 			if (el) {
-				const targetTop = el.offsetTop - container.clientHeight / 2 + el.clientHeight / 2;
+				const targetTop = el.offsetTop - (container.clientHeight / 2) + (el.clientHeight / 2);
 				container.scrollTo({
 					top: targetTop,
 					behavior: isPlaying ? "smooth" : "auto"
@@ -483,27 +518,18 @@ export default function PlayerScreen({ sessionId, goLibrary, currentUser }) {
 					<button onClick={() => setShowRomaji(!showRomaji)} className={`w-full py-2 rounded-lg text-[10px] font-black uppercase tracking-widest border transition-all ${showRomaji ? (isOverlay ? "bg-indigo-600/50 border-indigo-400 text-white" : "bg-indigo-100 border-indigo-200 text-indigo-600") : (isOverlay ? "bg-white/5 border-white/10 text-slate-300" : "bg-slate-50 border-slate-200 text-slate-400")}`}>Romaji {showRomaji ? "ON" : "OFF"}</button>
 				</div>
 
-				<div ref={subsContainerRef} className="flex-1 overflow-y-auto space-y-3 pr-2 no-scrollbar scroll-smooth">
-					{subs.length === 0 ? (
-						<p className="text-slate-400 text-center py-20 font-bold uppercase text-[10px] tracking-widest">Aucun sous-titre disponible</p>
-					) : (
-						subs.map((s, idx) => (
-							<SubtitleItem
-								key={idx}
-								sub={s}
-								idx={idx}
-								activeSubIndex={activeSubIndex}
-								tokenizedSub={tokenizedSubs[idx]}
-								romajiSub={romajiSubs[idx]}
-								showRomaji={showRomaji}
-								isOverlay={isOverlay}
-								getWordStatus={getWordStatus}
-								onWordClick={handleWordClick}
-								onJump={jumpToSub}
-							/>
-						))
-					)}
-				</div>
+				<TranscriptionList
+					subs={subs}
+					tokenizedSubs={tokenizedSubs}
+					romajiSubs={romajiSubs}
+					activeSubIndex={activeSubIndex}
+					showRomaji={showRomaji}
+					isOverlay={isOverlay}
+					getWordStatus={getWordStatus}
+					onWordClick={handleWordClick}
+					onJump={jumpToSub}
+					containerRef={subsContainerRef}
+				/>
 			</div>
 			{!isOverlay && (
 				<div className="bg-white/70 dark:bg-slate-900/70 backdrop-blur-2xl border border-slate-200 dark:border-slate-800 rounded-[2.5rem] p-6 text-center">
@@ -600,16 +626,15 @@ export default function PlayerScreen({ sessionId, goLibrary, currentUser }) {
 															{token.romaji}
 														</span>
 													)}
-													<span 
+													<span
 														onClick={(e) => {
 															e.preventDefault();
 															e.stopPropagation();
 															setSelectedWord({ ...token, status });
 															setPopupPos({ x: e.clientX, y: e.clientY });
 														}}
-														className={`cursor-pointer transition-all hover:scale-110 active:scale-95 pointer-events-auto ${
-															status === 2 ? "text-emerald-400" : (status === 1 ? "text-amber-400" : "text-white")
-														}`}
+														className={`cursor-pointer transition-all hover:scale-110 active:scale-95 pointer-events-auto ${status === 2 ? "text-emerald-400" : (status === 1 ? "text-amber-400" : "text-white")
+															}`}
 													>
 														{token.w}
 													</span>
@@ -660,7 +685,7 @@ export default function PlayerScreen({ sessionId, goLibrary, currentUser }) {
 								>
 									{/* Tooltip Popup */}
 									{hoverTime !== null && (
-										<div 
+										<div
 											ref={tooltipRef}
 											className="absolute bottom-10 left-0 -translate-x-1/2 bg-slate-900 border border-white/20 text-white rounded-lg shadow-2xl pointer-events-none z-50 overflow-hidden flex flex-col items-center after:content-[''] after:absolute after:top-full after:left-1/2 after:-translate-x-1/2 after:border-4 after:border-transparent after:border-t-slate-900"
 											style={{ willChange: 'transform' }}
@@ -765,18 +790,20 @@ export default function PlayerScreen({ sessionId, goLibrary, currentUser }) {
 					{renderTranscriptionHub()}
 				</div>
 			)}
-			
+
 			{/* Vocabulary Popup */}
 			{selectedWord && (
 				<VocabularyPopup
 					word={selectedWord.w}
-					reading={selectedWord.r}
+					reading={selectedWord.r || selectedWord.reading}
 					status={selectedWord.status}
 					position={popupPos}
-					onUpdate={(newStatus) => updateWordStatus(selectedWord.b || selectedWord.w, selectedWord.r, newStatus)}
+					onUpdate={(newStatus) => updateWordStatus(selectedWord.b || selectedWord.w, selectedWord.r || selectedWord.reading, newStatus)}
 					onClose={() => setSelectedWord(null)}
 				/>
 			)}
 		</div>
 	);
-}
+});
+
+export default PlayerScreen;

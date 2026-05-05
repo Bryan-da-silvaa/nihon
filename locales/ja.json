@@ -127,6 +127,7 @@
 		"profileAlt": "プロフィール写真",
 		"dashboard": "ダッシュボード",
 		"library": "ライブラリ",
+		"kanji": "漢字マスター",
 		"myProfile": "マイプロフィール",
 		"logout": "ログアウト",
 		"themeChangeTitle": "テーマを変更",
@@ -134,6 +135,12 @@
 		"langSwitchFr": "フランス語",
 		"admin": "管理",
 		"learningPreferences": "学習設定"
+	},
+	"kanji": {
+		"title": "漢字マスター",
+		"subtitle": "日本語の主要な漢字を学び、習得しましょう。",
+		"noKanjis": "このレベルの漢字は見つかりませんでした。",
+		"startReview": "漢字の復習を開始"
 	},
 	"auth": {
 		"welcome": "Nihonへようこそ",

@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { useLanguage } from "../context/LanguageContext";
+import { getLocalAvatar } from "../lib/avatars";
 
-export default function Navbar({ goProfile, goAdmin, goLibrary, goHome, screen, currentUser, logout, isDarkMode, setIsDarkMode }) {
+export default function Navbar({ goProfile, goAdmin, goLibrary, goKanji, goHome, screen, currentUser, logout, isDarkMode, setIsDarkMode }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const { t, tNode, changeLanguage, language } = useLanguage();
+  const { t, tNode, changeLanguage, language, systemSettings } = useLanguage();
 
   return (
     <nav className="w-full max-w-[1800px] mx-auto px-4 py-4 flex justify-between items-center relative z-50">
@@ -29,6 +30,12 @@ export default function Navbar({ goProfile, goAdmin, goLibrary, goHome, screen, 
             className={`px-5 py-2 rounded-xl font-bold transition-all ${screen === 'library' ? 'bg-white dark:bg-slate-700 shadow-sm text-indigo-600 dark:text-white' : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'}`}
           >
             {tNode('navbar.library')}
+          </button>
+          <button
+            onClick={() => goKanji()}
+            className={`px-5 py-2 rounded-xl font-bold transition-all ${screen === 'kanji' ? 'bg-white dark:bg-slate-700 shadow-sm text-indigo-600 dark:text-white' : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'}`}
+          >
+            {tNode('navbar.kanji') || "Kanji"}
           </button>
         </div>
       </div>
@@ -72,7 +79,7 @@ export default function Navbar({ goProfile, goAdmin, goLibrary, goHome, screen, 
               className="group flex items-center gap-2 pl-1 pr-3 py-1 bg-white/50 dark:bg-slate-900/40 rounded-full border border-slate-200 dark:border-slate-700 shadow-sm hover:border-indigo-400 dark:hover:border-indigo-500 transition-all cursor-pointer"
             >
               <img 
-                src={currentUser.avatar || "https://ui-avatars.com/api/?name=" + currentUser.username + "&background=random"} 
+                src={currentUser.avatar || systemSettings.defaultAvatar || getLocalAvatar(currentUser.username)} 
                 alt={t('navbar.profileAlt')}
                 className="w-8 h-8 rounded-full object-cover"
               />
@@ -112,6 +119,16 @@ export default function Navbar({ goProfile, goAdmin, goLibrary, goHome, screen, 
                 </button>
 
                 <button
+                  onClick={() => { if (goKanji) goKanji(); setIsMenuOpen(false); }}
+                  className="w-full text-left px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl text-slate-700 dark:text-slate-300 font-bold transition-colors flex items-center gap-3"
+                >
+                  <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                  </svg>
+                  {tNode('navbar.kanji') || "Kanji"}
+                </button>
+
+                <button
                   onClick={() => { goHome(); setIsMenuOpen(false); }}
                   className="md:hidden w-full text-left px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl text-slate-700 dark:text-slate-300 font-bold transition-colors flex items-center gap-3"
                 >
@@ -121,15 +138,17 @@ export default function Navbar({ goProfile, goAdmin, goLibrary, goHome, screen, 
                   {tNode('navbar.dashboard') || "Tableau de bord"}
                 </button>
                 
-                <button
-                  onClick={() => { if (goAdmin) goAdmin(); setIsMenuOpen(false); }}
-                  className="w-full text-left px-4 py-3 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-xl text-indigo-600 dark:text-indigo-400 font-bold transition-colors flex items-center gap-3"
-                >
-                  <svg className="w-4 h-4 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
-                  </svg>
-                  {tNode('navbar.admin')}
-                </button>
+                {currentUser && !!currentUser.is_admin && (
+                  <button
+                    onClick={() => { if (goAdmin) goAdmin(); setIsMenuOpen(false); }}
+                    className="w-full text-left px-4 py-3 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-xl text-indigo-600 dark:text-indigo-400 font-bold transition-colors flex items-center gap-3"
+                  >
+                    <svg className="w-4 h-4 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                    </svg>
+                    {tNode('navbar.admin')}
+                  </button>
+                )}
 
                 <div className="h-px bg-slate-100 dark:bg-slate-800 my-1 mx-2"></div>
 
