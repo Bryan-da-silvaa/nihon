@@ -28,6 +28,9 @@ help:
 build:
 	docker compose build
 
+build-no-cache:
+	docker compose build --no-cache
+
 up:
 	docker compose up -d
 	@echo "✅ Services started. App available at http://localhost:3000"
