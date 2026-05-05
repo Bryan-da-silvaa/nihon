@@ -15,8 +15,8 @@ if [ ! -f "$FILE" ]; then
 fi
 
 # Charger les variables d'environnement
-if [ -f ".env" ]; then
-    source .env
+if [ -f ".env.local" ]; then
+    source .env.local
 else
     echo -e "\033[0;31m❌ Erreur: Fichier .env introuvable.\033[0m"
     exit 1
