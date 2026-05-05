@@ -30,7 +30,7 @@ services:
 
   # Service MariaDB
   mariadb:
-    image: mariadb:11.4-alpine
+    image: mariadb:11.4
     container_name: nihon-mariadb-dev
     environment:
       - MARIADB_ROOT_PASSWORD=${MARIADB_ROOT_PASSWORD:-root_password}
