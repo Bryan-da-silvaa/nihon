@@ -38,7 +38,7 @@ services:
       - MARIADB_PASSWORD=${DB_PASSWORD:-nihon_password}
       - MARIADB_DATABASE=${DB_NAME:-nihon_db}
     ports:
-      - "3306:3306"
+      - "3307:3306"
     volumes:
       - mariadb_dev_data:/var/lib/mysql
       - ./scripts/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
