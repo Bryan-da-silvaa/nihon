@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+  # Service Next.js Frontend (Dev avec hot reload)
+  nihon-app:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: nihon-app-dev
+    ports:
+      - "3000:3000"
+    environment:
+      - DB_HOST=mariadb
+      - DB_USER=${DB_USER:-nihon_user}
+      - DB_PASSWORD=${DB_PASSWORD:-nihon_password}
+      - DB_NAME=${DB_NAME:-nihon_db}
+      - DB_PORT=${DB_PORT:-3306}
+      - NODE_ENV=development
+      - NEXT_TELEMETRY_DISABLED=1
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    networks:
+      - nihon-network
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/.next
+    restart: unless-stopped
+
+  # Service MariaDB
+  mariadb:
+    image: mariadb:11.4-alpine
+    container_name: nihon-mariadb-dev
+    environment:
+      - MARIADB_ROOT_PASSWORD=${MARIADB_ROOT_PASSWORD:-root_password}
+      - MARIADB_USER=${DB_USER:-nihon_user}
+      - MARIADB_PASSWORD=${DB_PASSWORD:-nihon_password}
+      - MARIADB_DATABASE=${DB_NAME:-nihon_db}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mariadb_dev_data:/var/lib/mysql
+      - ./scripts/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - nihon-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mariadb-admin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+networks:
+  nihon-network:
+    driver: bridge
+
+volumes:
+  mariadb_dev_data:
+    driver: local
