@@ -17,6 +17,7 @@ help:
 	@echo "Database:"
 	@echo "  make db-shell       - Open MariaDB shell"
 	@echo "  make db-logs        - View MariaDB logs"
+	@echo "  make db-import      - Import SQL file (make db-import FILE=dump.sql)"
 	@echo ""
 	@echo "Utilities:"
 	@echo "  make ps             - Show running containers"
@@ -66,6 +67,9 @@ db-shell:
 
 db-logs:
 	docker compose logs mariadb
+
+db-import:
+	@./scripts/db-import.sh $(FILE)
 
 # Cleanup commands
 clean:

@@ -14,15 +14,6 @@ RUN npm ci
 # Copier le code source
 COPY . .
 
-# Créer un utilisateur non-root
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nextjs -u 1001
-
-# Changer le propriétaire des fichiers
-RUN chown -R nextjs:nodejs /app
-
-USER nextjs
-
 EXPOSE 3000
 
 ENV NEXT_TELEMETRY_DISABLED=1
